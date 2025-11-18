@@ -27,6 +27,7 @@ public class ValidParentheses {
                 ']', '['
         ));
 
+        // Only necessary if there can be other characters in the string.
         Set<Character> openBrackets = new HashSet<>(brackets.values());
 
         Deque<Character> stack = new ArrayDeque<>();
@@ -56,8 +57,8 @@ public class ValidParentheses {
     }
 
     static void main() {
-        System.out.println(isValid("[]"));
-        System.out.println(isValid("([{}])"));
-        System.out.println(isValid("[(])"));
+        System.out.println(isValid("a[a]a"));
+        System.out.println(isValid("([{s}])d"));
+        System.out.println(isValid("ddd[(])"));
     }
 }
