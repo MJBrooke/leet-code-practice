@@ -1,5 +1,8 @@
 package leetcode.queue;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 /*
 Implement a last-in-first-out (LIFO) stack using only two queues.
 The implemented stack should support all the functions of a normal stack (push, top, pop, and empty).
@@ -33,32 +36,67 @@ Constraints:
  */
 public class StackFromQueues {
 
-    public StackFromQueues() {
+    /*
+    Thoughts:
+        - We are allowed to use 2 queues. That is the hint - there is something about using 2 FIFO that allows for 1 LIFO...
+            As per notes, queues are strictly FIFO - push-to-back and pop-from-front. So no funny business.
+        - If we push into a queue, we can't take out of it in the same order.
+            So - if we continuously add to a single queue, and only on a pop operation we reverse it until the last element, and put the rest back
+            then we have an inefficient Stack. So the second queue is only for temporary storage...
+            By filling one FIFO queue and then putting it back as FIFO, we maintain original order.
+     */
 
+    Queue<Integer> mainQueue;
+    Queue<Integer> popQueue;
+
+    public StackFromQueues() {
+        mainQueue = new LinkedList<>();
+        popQueue = new LinkedList<>();
     }
 
     public void push(int x) {
-
+        // We only add to one queue which keeps the right order of elements at all times
+        mainQueue.add(x);
     }
 
     public int pop() {
-        return 0;
+        int mainQueueSize = mainQueue.size();
+        // Remove all but the last element in the main queue (storing them in the popQueue)
+        for (int i = 0; i < mainQueueSize-1; i++) {
+            popQueue.add(mainQueue.remove());
+        }
+
+        // Remove and keep the last element of the main queue which is the LIFO value to pop off
+        int lastElement = mainQueue.remove();
+
+        // Re-add all the temp popQueue elements back to the mainQueue
+        for (int i = 0; i < mainQueueSize-1; i++) {
+            mainQueue.add(popQueue.remove());
+        }
+
+        return lastElement;
     }
 
+    // Top is nothing more than a Pop operation that re-adds it back afterwards. Reuse Pop.
     public int top() {
-        return 0;
+        int lastElement = pop();
+
+        mainQueue.add(lastElement);
+
+        return lastElement;
     }
 
     public boolean empty() {
-        return false;
+        return mainQueue.isEmpty();
     }
 
     static void main() {
         StackFromQueues myStack = new StackFromQueues();
-        myStack.push(1);
+        myStack.push(10);
         myStack.push(2);
-        System.out.println(myStack.top()); // print 2
-        System.out.println(myStack.pop()); // print 2
+        myStack.push(3);
+        System.out.println(myStack.top()); // print 3
+        System.out.println(myStack.pop()); // print 3
         System.out.println(myStack.empty()); // print False
     }
 }
