@@ -29,27 +29,27 @@ Constraints:
 public class GroupAnagrams {
 
     /*
-    Option 1:
+    Option 1 (naive):
         For each word, we sort it alphabetically and place it in a HashMap where the key is the sorted word and the value is a list of the actual words.
         We do this for every word, and then collect up the Values of the HashMap into a list and return it.
 
         Time complexity:
             n = number of words
-            k = average word length
+            k = longest word length
 
             sortWord = k log k (from sorting each word)
             groupAnagrams = n (we iterate each word once)
             Final complexity: O(n * k log k)
         Space complexity:
             n = number of words
-            k = average word length
+            k = longest word length
 
             All keys may be unique, so map has n keys
             Values can each be length k or more
 
             Final complexity: O(n * k)
      */
-    public static List<List<String>> groupAnagrams(String[] strs) {
+    public static List<List<String>> groupAnagramsSortedWords(String[] strs) {
         Map<String, List<String>> anagramGroups = new HashMap<>();
 
         for (String str : strs) {
@@ -67,6 +67,59 @@ public class GroupAnagrams {
         char[] strArr = str.toCharArray();
         Arrays.sort(strArr);
         return new String(strArr);
+    }
+
+    /*
+    Option 2 (optimal):
+        n = number of words
+        k = longest word length
+        The recommended time complexity is O(n * k) and space complexity of O(n).
+
+        So that means:
+            We can iterate each word exactly once
+            We can perform an operation iterating over each word start-to-finish once
+
+        Since we have to remember what we have seen, the solution is likely a map.
+        But we can no longer sort.
+
+        Used the hint -> We can use a char[26] array as the HashMap key.
+        So the algorithm is almost the same, except that iterating the word into an array
+            and creating a key from that takes O(k) time rather than O(k log k) with sorting.
+            This is a small optimisation but it is optimal for the solution.
+     */
+    public static List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> anagramGroups = new HashMap<>();
+
+        for (String str : strs) {
+            var key = createKey(str);
+
+            var listValue = anagramGroups.getOrDefault(key, new ArrayList<>());
+            listValue.add(str);
+            anagramGroups.put(key, listValue);
+        }
+
+        return new ArrayList<>(anagramGroups.values());
+    }
+
+    private static String createKey(String str) {
+        int[] freq = new int[26]; // We know there are only 26 letters in the English alphabet
+        for (int i = 0; i < str.length(); i++) { // Iterate: O(k) time complexity
+            char currChar = str.charAt(i);
+
+            /*
+            In Java, every char is actually a numeric value:
+                a = 97
+                ...
+                z = 122
+
+            So, 'a' - 'a' = 0,
+                'b' - 'a' = 1 etc.
+
+            This maps neatly to our 26-int zero-indexed array.
+             */
+            freq[currChar - 'a']++;
+        }
+        return Arrays.toString(freq);
     }
 
     static void main() {
