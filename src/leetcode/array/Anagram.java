@@ -20,6 +20,8 @@ public class Anagram {
 
         int[] letterFrequency = new int[26];
 
+        // Nit: Since we know the strings are of equal length, we can iterate once to that length
+        //          and use the same for-loop counter as the index for both
         for (char ch : a.toCharArray())
             letterFrequency[ch - 'a']++;
 
