@@ -15,45 +15,36 @@ Return true if s is a valid string, and false otherwise.
  */
 public class ValidParentheses {
 
+    /*
+        What we want to do here is to keep track of each opening parenthesis that we come across.
+        We want to ensure that there is a matching closing bracket in the same order that we have seen.
+        This suits a stack structure well.
+
+        We can simplify the problem a little by storing the expected closing bracket rather than what we have seen open.
+        If at any point they don't match, or the stack is not empty by the end, it is not valid.
+         */
     public static boolean isValid(String s) {
-        // We want to push each open bracket onto the stack
-        // For each closing bracket, we pop off the stack
-        // If the types are not the same, false
-        // If the stack is not empty by the end, false
+        // Based on any open bracket we see, we want to know what the expected closing bracket will look like.
+        //  It will also allow us to tell if we can safely ignore a character that is not relevant.
+        Map<Character, Character> openToClosingBracketMap = new HashMap<>();
+        openToClosingBracketMap.put('(', ')');
+        openToClosingBracketMap.put('{', '}');
+        openToClosingBracketMap.put('[', ']');
 
-        Map<Character, Character> brackets = new HashMap<>(Map.of(
-                ')', '(',
-                '}', '{',
-                ']', '['
-        ));
+        // Used to quickly identify if we have found a closing bracket in the iteration
+        Set<Character> closingBrackets = new HashSet<>(openToClosingBracketMap.values());
 
-        // Only necessary if there can be other characters in the string.
-        Set<Character> openBrackets = new HashSet<>(brackets.values());
+        Deque<Character> expectedClosingBracket = new ArrayDeque<>();
 
-        Deque<Character> stack = new ArrayDeque<>();
-
-        // Iterate over entire string
-        for (int i = 0; i < s.length(); i++) {
-            // Get current character
-            char ch = s.charAt(i);
-
-            // Is an open bracket?
-            if (openBrackets.contains(ch)) {
-                // Put the open bracket into the stack
-                stack.push(ch);
-                // Continue to next character
-                continue;
+        for (char ch : s.toCharArray())
+            if (openToClosingBracketMap.containsKey(ch)) // We know that we have seen an opening bracket
+                expectedClosingBracket.push(openToClosingBracketMap.get(ch)); // So we add an expectation for a closing equivalent
+            else if (closingBrackets.contains(ch)) {
+                if (expectedClosingBracket.isEmpty()) return false; // No closing bracket expected
+                if (expectedClosingBracket.pop() != ch) return false; // Wrong closing bracket
             }
 
-            // Is a closed bracket?
-            if (brackets.containsKey(ch)) {
-                // Check that the last bracket seen matches the expected closed bracket
-                if (stack.isEmpty() || stack.pop() != brackets.get(ch)) return false;
-            }
-        }
-
-        // If the stack is not empty, there were no equal numbers of open/closed brackets
-        return stack.isEmpty();
+        return expectedClosingBracket.isEmpty();
     }
 
     static void main() {
