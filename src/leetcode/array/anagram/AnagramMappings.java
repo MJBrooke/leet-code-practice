@@ -1,4 +1,4 @@
-package leetcode.array;
+package leetcode.array.anagram;
 
 import java.util.*;
 
