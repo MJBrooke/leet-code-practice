@@ -1,9 +1,6 @@
 package leetcode.array.anagram;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*
 Given two strings s and p, return an array of all the start indices of p's anagrams in s.
@@ -91,7 +88,7 @@ public class FindAllAnagramsInString {
         This allows us to avoid continuously recounting as we keep the counts as we move along and just adjust.
         This represents the optimal solution.
      */
-    public static List<Integer> findAnagrams(String s, String p) {
+    public static List<Integer> findAnagramsOptimallyWithMap(String s, String p) {
         List<Integer> anagramStartLocations = new ArrayList<>();
 
         if (p.length() > s.length())
@@ -128,6 +125,54 @@ public class FindAllAnagramsInString {
             }
 
             if (windowFreq.equals(pCount))
+                anagramStartLocations.add(lhs);
+
+            lhs++;
+            rhs++;
+        }
+
+        return anagramStartLocations;
+    }
+
+    /*
+    Option 3:
+        Option 2 is good, but I found using the HashMaps unwieldy since we had to do default values and removals to make .equals work.
+        I'm going to make another one that uses the Array frequency counter rather.
+        This way, we can just compare int values rather than exact Map contents with key/values.
+        It will also be faster since there will be far less GC contention and allocations.
+        It uses 2 constant size arrays for the entire computation.
+
+        Complexity:
+            Time: O(n) where n = length of s since we loop through the larger word exactly once
+            Space: O(1) since we always use 2 fixed length arrays
+     */
+    public static List<Integer> findAnagrams(String s, String p) {
+        List<Integer> anagramStartLocations = new ArrayList<>();
+
+        if (p.length() > s.length())
+            return anagramStartLocations;
+
+        // Create anagram footprint of p once
+        int[] pCount = new int[26];
+        for (char ch : p.toCharArray())
+            pCount[ch-'a']++;
+
+        int[] windowFreq = new int[26];
+
+        // Create a sliding window, starting at the first letter, to the length of the anagram being looked for
+        int lhs = 0;
+        int rhs = lhs + p.length()-1;
+        while (rhs != s.length()) {
+            // Will only be true on the first iteration. We need to set up the initial frequency count.
+            if(lhs == 0) {
+                for(int i = 0; i <= rhs; i++)
+                    windowFreq[s.charAt(i)-'a']++;
+            } else { // Remove the character being dropped on lhs and add rhs for subsequent runs
+                windowFreq[s.charAt(lhs-1)-'a']--;
+                windowFreq[s.charAt(rhs)-'a']++;
+            }
+
+            if (Arrays.equals(windowFreq, pCount))
                 anagramStartLocations.add(lhs);
 
             lhs++;
