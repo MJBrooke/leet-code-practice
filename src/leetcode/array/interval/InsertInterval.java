@@ -55,7 +55,7 @@ public class InsertInterval {
 
             This of course, assumes that input is already sorted.
      */
-    public static int[][] insert(int[][] intervals, int[] newInterval) {
+    public static int[][] insertWithMerge(int[][] intervals, int[] newInterval) {
         List<int[]> newIntervals = new ArrayList<>();
 
         // Traverse the intervals, and insert where start_time is still in order
@@ -103,6 +103,59 @@ public class InsertInterval {
 
         return mergedIntervals.toArray(new int[mergedIntervals.size()][]);
     }
+
+    /*
+    Option 2:
+        The key here is that we know all the current intervals in the input are non-overlapping.
+        This means that there will be 3 distinct phases to the solution:
+            1. Adding all intervals that start before the new one as-is
+            2. Merging all relevant intervals when start overlaps
+            3. Merging all remaining intervals after merging is complete
+
+        Some lessons:
+            You originally wanted to keep using the 'left' and 'right' comparison from when merging a list of intervals.
+            In this case, it is simpler to just look at a 'current' interval and just look at the next one.
+                This saves from a lot of index gymnastics.
+            You also need to be more mindful of indexes - since we externalise a single idx across the entire solution,
+                we need to make sure that we check it at the start of every loop _before_ doing any work.
+                You originally wanted to keep it inside the loop, but that just complicates the logic.
+
+        This is now optimal. Complexity:
+            Time: O(n) as we iterate each interval once, doing only O(1) operations per iteration
+            Space: O(n) as we create a new dynamic list for appending output
+     */
+    public static int[][] insert(int[][] intervals, int[] newInterval) {
+        List<int[]> mergedIntervals = new ArrayList<>();
+
+        int idx = 0;
+
+        // While the new interval's start is bigger than curr's end (no merge needed, add as-is)
+        while (idx < intervals.length && intervals[idx][1] < newInterval[0]) {
+            mergedIntervals.add(intervals[idx]);
+            idx++;
+        }
+
+        int[] mergedInterval = newInterval; // Don't mutate input variable `newInterval`
+        // Now we know we need to merge while curr start is smaller or equal to the new one's end.
+        // We don't worry about a left or right, we just merge up the newInterval until we reach a non-overlap.
+        while (idx < intervals.length && intervals[idx][0] <= mergedInterval[1]) {
+            mergedInterval = new int[]{
+                    Math.min(intervals[idx][0], mergedInterval[0]),
+                    Math.max(intervals[idx][1], mergedInterval[1]),
+            };
+            idx++;
+        }
+        mergedIntervals.add(mergedInterval);
+
+        // We now have no more overlaps, so we continue adding the rest as-is
+        while (idx < intervals.length) {
+            mergedIntervals.add(intervals[idx]);
+            idx++;
+        }
+
+        return mergedIntervals.toArray(new int[mergedIntervals.size()][]);
+    }
+
 
     static void main() {
         System.out.println(Arrays.deepToString(
