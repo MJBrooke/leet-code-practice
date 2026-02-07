@@ -53,7 +53,7 @@ public class MeetingRooms {
         However, this has a time complexity of O(n^2) and a space complexity of O(n) since we create an array to optimise access-time.
             We could in theory use List.get to avoid the space complexity but that adds even more time to an already terrible-scaling implementation.
      */
-    public static boolean canAttendMeetings(List<Interval> intervals) {
+    public static boolean canAttendMeetingsBrute(List<Interval> intervals) {
         if (intervals.size() < 2) return true; // Zero or one meeting can always be attended
 
         Interval[] list = intervals.toArray(new Interval[intervals.size()]); // O(n) to create, and then O(1) access in iteration
@@ -69,8 +69,27 @@ public class MeetingRooms {
     }
 
     /*
-    Option 2 (up next!)
+    Option 2:
+        Could we greedily merge and check?
+        Ie. If we move through the intervals, taking the maximum end time, could we determine it in a single iteration
+
+
      */
+    public static boolean canAttendMeetings(List<Interval> intervals) {
+        if (intervals.size() < 2) return true; // Zero or one meeting can always be attended
+
+        Interval[] list = intervals.toArray(new Interval[intervals.size()]); // O(n) to create, and then O(1) access in iteration
+
+        // Sort by start time
+        Arrays.sort(list, (a, b) -> Integer.compare(a.start, b.start));
+
+        for (int i = 0; i < list.length-1; i++)
+            if (list[i].end > list[i+1].start)
+                return false;
+
+        return true;
+    }
+
 
     static void main() {
         System.out.println(canAttendMeetings(List.of(
