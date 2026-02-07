@@ -55,12 +55,14 @@ public class MeetingRoomsII {
         PriorityQueue<Integer> meetingsInProgress = new PriorityQueue<>();
 
         for (Interval interval : intervals) {
+            // If at least one meeting is in progress and it ends earlier than the new meeting's start
             if (!meetingsInProgress.isEmpty() && meetingsInProgress.peek() <= interval.start)
-                meetingsInProgress.remove();
+                meetingsInProgress.remove(); // Remove that meeting
 
-            meetingsInProgress.add(interval.end);
+            meetingsInProgress.add(interval.end); // Add the new one in
         }
 
+        // This size represents how many rooms are needed at the maximum overlap of meetings
         return meetingsInProgress.size();
     }
 
