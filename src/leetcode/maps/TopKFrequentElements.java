@@ -37,6 +37,7 @@ public class TopKFrequentElements {
 
         Complexity:
             n = size of nums
+            m = size of unique elements
             k = num items to return
             Time: O(n + m + k log m) solution.
      */
@@ -60,7 +61,12 @@ public class TopKFrequentElements {
     /*
     Option 2:
         This is an improved version of Option 1 where we swap to a min-heap and only keep k entries in it.
-        This means that complexity goes to O(n + m log k)
+
+        Complexity:
+            n = size of nums
+            m = size of unique elements
+            k = num items to return
+            Time: O(n + m + m log k) solution.
      */
     public static int[] topKFrequentImproved(int[] nums, int k) {
         Map<Integer, Integer> freqs = new HashMap<>();
