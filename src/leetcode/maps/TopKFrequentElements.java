@@ -34,7 +34,11 @@ public class TopKFrequentElements {
         We can iterate over the array keeping a count of each number in a HashMap.
         We then use a Max Heap/PriorityQueue to order map entries by count.
         We then poll k elements from the heap, using the entry key as output in an array.
-        This would be an O(n + m + k log m) solution.
+
+        Complexity:
+            n = size of nums
+            k = num items to return
+            Time: O(n + m + k log m) solution.
      */
     public static int[] topKFrequent(int[] nums, int k) {
         Map<Integer, Integer> freqs = new HashMap<>();
@@ -53,13 +57,44 @@ public class TopKFrequentElements {
         return output;
     }
 
+    /*
+    Option 2:
+        This is an improved version of Option 1 where we swap to a min-heap and only keep k entries in it.
+        This means that complexity goes to O(n + m log k)
+     */
+    public static int[] topKFrequentImproved(int[] nums, int k) {
+        Map<Integer, Integer> freqs = new HashMap<>();
+        for (int num : nums)
+            freqs.put(num, freqs.getOrDefault(num, 0)+1);
+
+        PriorityQueue<Map.Entry<Integer, Integer>> queue = new PriorityQueue<>(
+                Comparator.comparingInt(Map.Entry::getValue)
+        );
+        for (var entry : freqs.entrySet()) {
+            queue.offer(entry);
+
+            // We only need to keep largest k entries
+            // If we reach this capacity + 1, we can safely now remove the smallest freq we have seen.
+            // This helps with memory footprint, but also reduces heap ordering overhead massively
+            if (queue.size() > k)
+                queue.poll();
+        }
+
+        // Add up output from Heap, knowing there are k entries in it
+        int[] output = new int[k];
+        for (int i = 0; i < k; i++)
+            output[i] = queue.poll().getKey();
+
+        return output;
+    }
+
     static void main() {
         System.out.println(Arrays.toString(
-                topKFrequent(new int[]{1, 2, 2, 3, 3, 3}, 2)
+                topKFrequentImproved(new int[]{1, 2, 2, 3, 3, 3}, 2)
         )); // Output: [2,3]
 
         System.out.println(Arrays.toString(
-                topKFrequent(new int[]{7, 7}, 1)
+                topKFrequentImproved(new int[]{7, 7}, 1)
         )); // Output: [7]
     }
 }
