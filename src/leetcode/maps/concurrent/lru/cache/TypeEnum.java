@@ -1,5 +1,5 @@
 package leetcode.maps.concurrent.lru.cache;
 
 public enum TypeEnum {
-    A, B, C
+    A, B, C, UNKNOWN
 }
