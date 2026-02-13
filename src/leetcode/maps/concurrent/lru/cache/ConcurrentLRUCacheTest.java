@@ -119,9 +119,9 @@ class ConcurrentLRUCacheTest {
                     // 80% of requests hit the same 5 "hot" keys (forcing moveToMostRecentlyUsed)
                     // 20% of requests hit unique "cold" keys (forcing inserts and evictions)
                     if (threadId % 5 != 0) {
-                        cache.getOutputType("HOT_BIN_" + (threadId % 5));
+                        cache.getOutputType("HOT_" + (threadId % 5));
                     } else {
-                        cache.getOutputType("COLD_BIN_" + threadId);
+                        cache.getOutputType("COLD_" + threadId);
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
