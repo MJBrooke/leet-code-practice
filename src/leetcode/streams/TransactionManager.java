@@ -6,62 +6,98 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class TransactionManager {
-    private final List<Transaction> transactions;
-
     /*
     Plan for implementation:
         - First pass: Each individual function using streams from the raw transactions object ✅
         - Second pass: Improve performance (caching/indexing at construction, likely)
+            Implementation plan: For each function, we can pre-compute the outputs that don't rely on the input value of each function.
+             In 2 of the functions, we filter by merchant ID. Precompute to a Map of <Merchant, Txns>.
+             We also have two groupings by Merchant's Volume. We can pre-compute that.
+
+            Technically, we could pre-compute everything, but we can make a memory/runtime tradeoff by:
+                - Selecting sensible common lookups that are reused in multiple functions
      */
 
-    public TransactionManager(List<Transaction> transactions) {
-        if (transactions == null) throw new IllegalArgumentException("transactions cannot be null");
+    private final Map<String, List<Transaction>> merchantIndex;
+    private final Map<String, Double> merchantVolumeIndex;
 
-        this.transactions = transactions;
+    public TransactionManager(List<Transaction> transactions) {
+        List<Transaction> source = (transactions == null) ? List.of() : transactions;
+
+        merchantIndex = source.stream()
+                .filter(txn -> txn != null && txn.merchantId != null)
+                .collect(Collectors.groupingBy(Transaction::merchantId));
+
+        merchantVolumeIndex = source.stream()
+                .filter(txn -> txn != null &&
+                        txn.merchantId != null &&
+                        Objects.equals(Status.SUCCESS, txn.status))
+                .collect(Collectors.groupingBy(
+                        Transaction::merchantId,
+                        Collectors.summingDouble(Transaction::amount)
+                ));
     }
 
     /**
      * Returns the total sum of all SUCCESSFUL transactions for a merchant.
      */
     public double getSuccessfulVolume(String merchantId) {
-        if (merchantId == null) return 0.0;
+        // Complexity: O(1) lookup. Completely pre-computed.
+        return merchantVolumeIndex.getOrDefault(merchantId, 0.0);
 
-        return transactions.stream()
-                .filter(txn -> Objects.equals(merchantId, txn.merchantId)) // Choose the filter removing the most entries first! Reduces workload downstream.
-                .filter(txn -> Objects.equals(Status.SUCCESS, txn.status)) // NB: Using Objects.equals avoids NPEs
-                .mapToDouble(Transaction::amount) // mapToDouble prevents Boxing/Unboxing for performance
-                .sum();
+//        Complexity: O(n)
+//        return transactions.stream()
+//                .filter(txn -> Objects.equals(merchantId, txn.merchantId)) // Choose the filter removing the most entries first! Reduces workload downstream.
+//                .filter(txn -> Objects.equals(Status.SUCCESS, txn.status)) // NB: Using Objects.equals avoids NPEs
+//                .mapToDouble(Transaction::amount) // mapToDouble prevents Boxing/Unboxing for performance
+//                .sum();
     }
 
     /**
      * Returns a list of merchant IDs whose total SUCCESSFUL volume exceeds the threshold.
      */
     public List<String> getHighValueMerchants(double threshold) {
-        return transactions.stream()
-                .filter(txn -> Objects.equals(Status.SUCCESS, txn.status))
-                .collect(Collectors.groupingBy(
-                        Transaction::merchantId,
-                        Collectors.summingDouble(Transaction::amount)
-                )) // Results in Map<String, Double>
-                .entrySet().stream() // We need to create a new stream again
+        // Complexity: O(m) where m = number of unique merchants
+        return merchantVolumeIndex.entrySet().stream()
                 .filter(entry -> entry.getValue() > threshold)
                 .map(Map.Entry::getKey)
                 .toList();
+
+//        Complexity: O(n)
+//        return transactions.stream()
+//                .filter(txn -> Objects.equals(Status.SUCCESS, txn.status))
+//                .collect(Collectors.groupingBy(
+//                        Transaction::merchantId,
+//                        Collectors.summingDouble(Transaction::amount)
+//                )) // Results in Map<String, Double>
+//                .entrySet().stream() // We need to create a new stream again
+//                .filter(entry -> entry.getValue() > threshold)
+//                .map(Map.Entry::getKey)
+//                .toList();
     }
 
     /**
      * Returns a Map where the key is the currency and the value is the total SUCCESSFUL amount.
      */
     public Map<String, Double> groupByCurrency(String merchantId) {
-        if (merchantId == null) return Map.of();
+        var merchantTransactions = merchantIndex.get(merchantId);
+        if (merchantTransactions == null) return Map.of();
 
-        return transactions.stream()
-                .filter(txn -> Objects.equals(merchantId, txn.merchantId))
+        // Complexity: O(k) where k = number of transactions for this merchant
+        return merchantTransactions.stream()
                 .filter(txn -> Objects.equals(Status.SUCCESS, txn.status))
                 .collect(Collectors.groupingBy(
-                        Transaction::currency,
+                        tx -> Objects.requireNonNullElse(tx.currency(), "UNKNOWN"), // In case currency is null
                         Collectors.summingDouble(Transaction::amount)
                 ));
+
+//        return transactions.stream()
+//                .filter(txn -> Objects.equals(merchantId, txn.merchantId))
+//                .filter(txn -> Objects.equals(Status.SUCCESS, txn.status))
+//                .collect(Collectors.groupingBy(
+//                        Transaction::currency,
+//                        Collectors.summingDouble(Transaction::amount)
+//                ));
     }
 
     // --- Domain Models ---
@@ -75,7 +111,7 @@ public class TransactionManager {
 
     // --- Test Execution ---
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         System.out.println("Running BankingTransactionManager Tests...\n");
 
         List<Transaction> testData = List.of(
@@ -117,14 +153,6 @@ public class TransactionManager {
 
         Map<String, Double> expectedMapC = Map.of(); // Empty map expected
         runTest("Group Currency for Merchant_C", expectedMapC, manager.groupByCurrency("Merchant_C"));
-
-        // TEST 4: Null List Edge Case
-//        try {
-//            TransactionManager nullManager = new TransactionManager(null);
-//            runTest("Null List Handling", 0.0, nullManager.getSuccessfulVolume("Merchant_A"));
-//        } catch (Exception e) {
-//            System.err.println("❌ FAILED: Null List Handling threw an exception: " + e.getClass().getSimpleName());
-//        }
     }
 
     // --- Simple Assertion Helpers ---
