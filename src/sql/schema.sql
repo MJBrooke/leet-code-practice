@@ -45,3 +45,10 @@ INSERT INTO transactions (merchant_id, amount, currency, status, created_at) VAL
 -- Mix of 2025 and 2026 data to test date filtering
 ('M_001', 25.00, 'EUR', 'SUCCESS', '2025-12-31 23:59:00'),
 ('M_001', 30.00, 'EUR', 'SUCCESS', '2026-01-01 00:01:00');
+
+-- Insert refund txns
+INSERT INTO transactions (merchant_id, amount, currency, status, created_at) VALUES
+('M_001', 10.50, 'EUR', 'REFUNDED', '2025-02-20 09:00:00'),
+('M_001', 5.00, 'EUR', 'REFUNDED', '2025-02-21 11:00:00'),
+('M_002', 100.00, 'USD', 'REFUNDED', '2025-03-01 15:00:00'),
+('M_002', 150.00, 'USD', 'REFUNDED', '2025-03-05 10:00:00');
