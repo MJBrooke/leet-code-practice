@@ -14,6 +14,10 @@
          CASE WHEN status = 'SUCCESS' THEN 1.0 ELSE 0.0 END AS is_success
      FROM transactions
      WHERE merchant_id = 'M_001'
+       AND (
+            (created_at >= '2025-02-01' AND created_at < '2025-03-01')
+         OR (created_at >= '2025-12-01' AND created_at < '2026-01-01')
+       )
  )
  SELECT
      period,
