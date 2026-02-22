@@ -1,0 +1,111 @@
+Why a ConcurrentSkipListMap?
+    - ConcurrentHashMap is great for key-values, but since it is unordered, ranging over it is difficult.
+    - TreeMap is fast and ordered, but it is not thread-safe. It would need manual synchronization which would slow read/writes under load.
+    - CSLM is sorted, inherently thread-safe and has standard library support like subMap.
+
+What is a SkipList?
+    - Dynamic search data structure that uses a linked list under the hood for storage.
+    - Solves O(n) searching by creating links to further nodes that skips levels.
+        eg.
+            1  ->                         7
+            1  ->               5 ->      7
+            1  ->     3 ->      5 ->      7
+            1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+
+        This allows us to traverse a much smaller number of nodes to find what we are looking for.
+        It has a search time of O(log n).
+        Since it is a linked list, updating, inserting or removing is an O(1) operation if we know where the applicable node is.
+    - For each new node, there is a 50/50 chance it will be added to the higher lane per level.
+        For a node to cross multiple levels, it needs repeated 50/50 chances to be 'true'.
+        This probability creates an overall balanced structure with minimal overhead.
+
+What is a ConcurrentSkipListMap?
+    - A map implementation that uses Compare-and-Swap (CAS) operations rather than hard synchronized locks.
+        On insert, the update is attempted by the DS. If update fails, it is simply retried again by the same thread in a tight loop.
+        This is why the subMap operation is never blocked despite new payments being registered.
+    - Offers weakly consistent iterators, which are simply 'live views' of the actual underlying structure.
+        If values change, the iterator simply views the live data. This means that as you iterate over,
+        you are not guaranteed to see all updates, but it's a best-effort under the concurrent circumstances.
+    - The Map uses the underlying SkipList to keep Nodes containing:
+        - Your key and value
+        - Order in the list based on the key (keeps perfect chronological order)
+        The upper-layers only store the keys, and not the values which are only on the bottom layer. They exist only for searching.
+        So there is no 'hash' or exact routing - every lookup is an O(log n) operation traversing these keys until the item is found on the bottom layer.
+
+How does Compare-and-swap (CAS) work?
+    - Traditional synchronization is 'pessimistic locking' - a collision is assumed, so DS is locked, worked on and unlocked for a read or write.
+        Other threads accessing it must sleep until the lock is released, which is very slow and inefficient.
+    - CAS is an 'optimistic locking' approach. It assumes collisions are rare and uses an efficient atomic instruction provided by CPU hardware.
+    - Each CAS operation has:
+        1. The memory location of the value we want to update
+        2. The expected 'old' value which is what we believe the value currently is
+        3. The 'new' value we want to write
+    - On a write, if the current value matches the 'old' value, we swap it out since no other concurrent operation has changed it.
+        If it does not match, the CAS operation 'fails'. When this happens, the thread enters a 'spin loop':
+            - It re-reads the fresh value, recalculates the new value and attempts the same CAS update.
+            - Continues trying this until it succeeds without putting the thread to sleep.
+            This is why it is 'lock-free' - threads are always attempting progress rather than being blocked.
+
+How does the ConcurrentSkipListMap use CAS?
+    - The pointers linking nodes are what are protected with CAS.
+        1. The Map calculates exactly where the node belongs in the SkipList, noting existing value
+        2. The Map attempts a CAS operation. If another operation has changed the values already, it fails, recalculates and retries until successful.
+
+ConcurrentSkipList API
+    Implements ConcurrentNavigableMap (NavigableMap, SortedMap & ConcurrentMap)
+
+    1. View Methods (windowing) - live, thread-safe views of portions of the map
+        - subMap(fromKey, fromInclusive, toKey, toInclusive)
+            Isolates a range of keys, giving a concurrent iterator over them
+        - headMap(toKey, inclusive)
+            View of all keys strictly less than/equal to the targetKey.
+            Useful for things like eviction logic for older timestamps.
+        - tailMap(fromKey, inclusive)
+            View of all keys more than/equal to fromKey.
+            Useful for finding all payments after a specific time
+    2. Boundary Navigation Methods
+        Useful for finding keys close to, but not equal with a provided key-search
+        - ceilingKey/Entry(key)
+            Returns entry/key greater than given key.
+            If key = 12:00:05, and closest next is 12:00:08, it will return the latter
+        - floorKey/Entry(key)
+        - higherEntry/Key(key)
+            strictly greater/less than - never an exact match
+    3. Atomic Mutations Methods
+        All of these use CAS locking
+        - merge(key, value, remappingFunc)
+            If key missing, insert provided value.
+            If not, use func to calculate new value using existing+provided
+        - putIfAbsent(key, value)
+            Simple insert only if it does not exist already (allows another thread to do it exactly once)
+            Second thread will be given the existing value the other thread created.
+        - computeIfAbsent(key, mappingFunc)
+            Runs a function to generate the new value only if the key does not already exist in the map
+            Useful for lazy initialisation (such as creating a List only once we see a key for it)
+    4. Polling Methods
+        Useful for treating map like a priority queue or finding boundaries
+        - firstEntry/Key
+            Smallest key (such as the oldest payment)
+        - pollFirstEntry/Key
+            Retrieves the value, but also removes it from the map
+
+ConcurrentSkipList API Time Complexity
+    - Retrieval (get, ceiling, floor etc): O(log n) - requires SL traversal
+    - Mutation (put, merge, remove): O(log n) - requires SL traversal + O(1) CAS op
+    - Views (subMap, headMap): O(1) - lightweight boundary wrapper
+    - Iteration (map.values()) - O(k) where k is the number of elements in view/map
+    - firstKey/Entry: O(1) - always accessed form head pointer at start
+    - lastKey/Entry: O(log n) - must traverse express lanes to end
+
+Some technicalities
+    - True worst case complexity is O(n) if all coin flips were negative.
+        However, this is a mathematically tiny chance.
+    - size() is an O(n) operation
+        Due to lock-free nature of implementation, there is no global counter across concurrent mutating threads.
+        size() therefore counts entire bottom layer.
+    - subMap is actually O(1) and not O(log n)
+        It is a lazily evaluated function. It only stored a ref to original map, and your 2 boundary limits.
+        Only when you access something in this view is it O(log n) as this is when the view
+            actually does an O(log n) search through for the start index of the underlying map.
+            Every sideways step from there in the Iterator is an O(1) operation until it hits the endTime limit.
+            This saves wasted CPU cycles if the iterator is never used for some reason (like an exception being thrown).
