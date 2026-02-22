@@ -1,0 +1,24 @@
+How does a CopyOnWriteArrayList work in a concurrent environment?
+    1. Core philosophy is a 'Snapshot' iteration
+        Underlying internal array is immutable.
+        When read from, it is a plain volatile array allowing latest info for any thread.
+        When modified, a completely new copy is made with the change, and is swapped out from the old array.
+    2. Since it is immutable, it allows:
+        - Reads: O(1) lock-free
+            Underlying array does not change, so no locking or synchronisation is needed.
+            Very fast for get() and iterator() invocations.
+        - Writes: O(n) with a lock
+            1. Acquire reentrant lock
+            2. Copy array to new one of size n+1
+            3. Mutate
+            4. Publish (swap reference to new array)
+            5. Release lock
+    3. Use cases
+        Few-writes but lots of reads
+        eg. Thousands of threads need a list of active payment gateways, but the list changes once a week
+        The O(1) read-only array is zero contention for the 99.99% of the time reading is happening.
+
+Why it does not fit Velocity checks:
+    - It is a write-heavy workload, creating multiple O(n) operations
+    - Lots of memory pressure and high GC
+    - The iterator is a snapshot, and can have stale data. Not good for millisecond-level up-to-date payment reading.
