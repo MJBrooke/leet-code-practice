@@ -1,0 +1,66 @@
+What is a HashMap?
+    A key-value store that hashes the key's value to immediately reference the index where the value is kept.
+    This allows for O(1) inserts and gets.
+
+Core data structure?
+    At the core, it is an array where each index is a bucket implemented as a Linked-List or Red-Black tree.
+    When you insert, the following happens:
+        1. The key's hashCode() is invoked
+        2. A supplemental function spreads the bits to better diversify the spread of indexes.
+            This fixes bad hashing functions.
+        3. This hash is mapped down to an index within the bounds of the underlying array
+    Collisions are handled as follows:
+        - Linked-Lists: New entry is added to the list
+        - If a bucket becomes crowded (8 nodes), Java converts it to a Red-Black Tree
+    On lookup:
+        1. The key is hashed to find the bucket's index
+        2. The list or tree is searched by using equals() for each entry
+        The former is O(n) and the latter is O(log n)
+    What happens if the array fills up?
+        - By default, it resizes to double previous capacity at 75% full (a load factor of 0.75)
+        - Every element is then re-hashed for a new position in the array
+    -> If you know how many items you're going to store (eg. 1000), they you oversize it to prevent resizing.
+            eg. For 1000 items at 0.75 load factor, you set initial capacity to 1334
+
+Why is it not thread-safe?
+    If 2 threads resize the hashmap, they can accidentally create a circular reference in the
+        underlying linked list, eating 100% of the CPU
+
+How does Hashing work?
+    1. The hashCode() method
+        hashCode() is inherited from the Object class, returning a 32-bit signed integer
+        For any 2 Objects of the same type with the same data, it must always return the same number.
+            hashCode() and equals() must both be overridden for the hashing and searching in list to work.
+    2. The spread function
+        Bitwise shuffling is done to spread the number out a bit to prevent clumping on high bits
+    3. Index calculation
+        The 32-bit hash is mapped down to 0->upper-bound of internal array
+            Index = (length -1) & Hash
+            This works because the internal array is always a power of 2 since it doubles from 16
+
+So how does a ConcurrentHashMap build on this?
+    The old way (Java 7 and earlier):
+        Map was divided into 16 segments, each a HashMap with it's own lock
+            Pros: Multiple threads could lock different segments individually, improving throughput
+            Cons: If two or more threads wanted the same segment, the lock applied sleeping the other thread.
+                    Resizing the map locked every segment while rehashing.
+
+    The modern way (Java 8+)
+        Locking is now on the individual bucket level.
+        Putting data into a bucket uses a CAS operation:
+            1. Thread calculates the index via hashing
+            2. Sees the bucket is null
+            3. Uses CAS to 'swap' null for the new Node
+            4. If that null hasn't changed, it succeeds
+                If it is not empty, the thread uses the synchronized keyword on the bucket.
+
+        If writing uses CAS and synchronisation, how does it read without locking?
+            It uses the 'volatile' keyword on the 'val' and 'next' fields of the Node.
+            These variables use hardware to ensure all other threads see the update immediately, allowing lock-free reads.
+                Every read is guaranteed to see the latest successful write.
+
+    How resizing is achieved?
+        Once load factor is reached, first thread that notices starts the transfer
+        Leaves a ForwardingNode in the buckets it has finished moving
+        Future threads that hit a ForwardingNode join in and help others move buckets.
+        This allows multiple threads to move it, rather than locking down a single thread.
