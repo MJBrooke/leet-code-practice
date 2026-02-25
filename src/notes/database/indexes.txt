@@ -1,0 +1,64 @@
+What is an index?
+    It is like an index at the back of the book, or a library catalogue.
+    It tells the db exactly where to look, rather than doing a full sequential scan.
+
+Core Concept: Balanced Trees (B-Trees)
+    A balanced tree ensures that the path from the top to any specific piece of data is
+        always the same distance (ensuring consistent performance).
+        Every leaf node is the exact same distance from the root.
+    It is actually a separate structure from the table itself, storing the values of a column
+        in sorted order with a pointer to the physical location in the table.
+    When used, the b-tree is traversed to the value, finds it in a reasonable number of hops
+        and grabs the value from the disk (or just the index if the query doesn't need additional info).
+
+B-Tree Structure:
+    1. Root Node: Entry point containing high-level ranges of values
+    2. Internal Nodes: Granular ranges getting closer to what is being searched for
+    3. Leaf Nodes: These contain the actual indexed values (such as user_id) and the location of the row in the table.
+
+Excellent for:
+    - Range scans: leaf nodes are sorted and linked.
+        eg. WHERE id > 100 and id < 200: once db finds 100, it just walks sideways for the rest
+    - Logarithmic complexity: Searching is O(log n) even for millions of rows
+
+Further concepts:
+    - Index-only scan: if the index has all the information requested from a SELECT,
+        it can return data straight from the index without going to the table.
+    - Multi-Column Indexes: Allows indexing on multiple columns at once or partial.
+        eg. CREATE INDEX idx_user_name ON users (last_name, first_name)
+        This can be used to search for either last_name or last_name+first_name.
+        It does not work for a search on first_name.
+    - Partial indexes: You can set a condition for the index itself.
+        Eg. you only ever query active users: CREATE INDEX idx_active_users ON users (email) WHERE status = 'active';
+        This keeps indexes much smaller and faster with less data.
+
+Cost of indexing:
+    Mutating actions must update both the table and all associated indexes, making them slower
+
+Query Planner:
+    Determines fastest approach amongst full scans, indexes etc
+    Even if there is an index, it might choose a full scan if it will be faster.
+        eg. indexing a boolean value where 50% of the rows are true.
+        The db will do a full scan anyway despite the index.
+    You need indexes on columns with many unique values (high cardinality)
+        eg. IDs, emails or timestamps
+
+EXPLAIN keywords
+    - Explain: Shows the plan the db _expects_ to follow
+    - Explain Analyze: actually runs the query and compares the estimates with reality
+
+Gotchas:
+    Queries can be written that 'break' indexes. Eg. using UPPER(email) means we can traverse the index quickly.
+    Solution: Expression indexes can store indexes with pre-computed output from functions.
+        eg. CREATE INDEX idx_upper_email ON users (UPPER(email))
+
+---
+Inverted Index
+    These are useful for full text queries such as SELECT WHERE LIKE '%pizza%'
+    Since it appears in the middle, we can't use a b-tree which is sorted by prefix.
+    This is more commonly used in JSON, text and document searches.
+
+    These indexes list each document/page/entry associated with each word.
+    So if you search for '%pizza%', it will lookup 'pizza' and immediately know all the rows/documents containing it.
+    It is a HashMap of word -> entries
+        eg. pizza -> [doc1, doc7, doc100]

@@ -1,0 +1,6 @@
+O(log n)
+    Represented by 'divide & conquer'.
+    If an algorithm reduces the amount of data it looks at (usually half) with each step, this is it.
+    It is 'linear processing' over 'exponential dataset growth'.
+
+    If you have n elements, the number of steps to find one element is the number of times you can divide n by 2 before you reach 1.
