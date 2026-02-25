@@ -1,0 +1,22 @@
+At sufficient scale, not even a good index can guarantee performance.
+In these cases, there are architectural choices we can make:
+
+---
+Table Partitioning (Divide & Conquer)
+    The process of splitting one large logical table into smaller physical child tables.
+    The application 'sees' one table, but PostgreSQL only scans relevant parts under the hood.
+
+How it works
+    Define a Partition Key (such as a timestamp or region ID)
+    If a query contains a WHERE clause with that key, it 'prunes' irrelevant partitions before searching.
+    eg. Monthly Reporting can split a table by months, making queries very small on child tables only and reduces RAM per index
+    It can also make removing old data quick, since you can drop entire partitions in O(1)
+
+---
+Materialized Views (Caching the Result)
+    A standard 'View' is just a saved query, callable by name, but runs fresh each time.
+    A 'Materialized View' saves the result of a query to disk, creating a snapshot that is quick to query again.
+    However, you need to manually 'invoke' a refresh to update the data returned by the query.
+    eg. Once a report of historical financial data is queried, the result will always be the same if no new data is added to the past.
+
+
