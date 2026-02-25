@@ -1,0 +1,196 @@
+The Java Memory Model
+    This defines how and when changes made by one thread are visible to another.
+    Bridges the gap between how hardware works and how Java code executes.
+
+    Solves:
+        - Visibility: When does thread B see changes made in thread A?
+        - Atomicity: Which operations are 'all-or-nothing'?
+        - Ordering: Compiler, JVM or CPU can reorder instructions for performance.
+            JMM defines the limits of the reordering.
+
+    Happens-before: Formal guarantee about updates being visible to others
+        ie. If A happens-before B, then A is guaranteed to be visible to B
+        - Every action in a thread comes before ever later action in program order
+        - Unlocks on a monitor lock happen before subsequent locks
+        - A write to a volatile field happens-before every subsequent read
+
+    - Volatile keyword: var is always read from and written to main memory, preventing
+        instruction reordering and local caching
+        - Every read is pulled from main memory
+        - Every write is flushed to main memory immediately
+        NB: These are not atomic on compound operations, such as ++ on a volatile int!
+
+    - Instruction reordering: if 2 instructions don't depend on each other, they can run in parallel
+
+    - 'final' keyword: JMM guarantees threads see the correctly initiated values of an object's 'final' fields
+        Prevents threads seeing a value before constructor has finished.
+        -> A class is immutable if it has no setters and all fields are 'final'
+
+Synchronisation & Locking
+    Intrinsic locks (synchronized)
+        - If A holds lock for X, it can enter another synchronized block for X
+        - Lock automatically released when thread leaves block (even on exception)
+        - Happens-before guaranteed - A does work, leaves block, B sees changes from A
+    Explicit locks
+        ReentrantLock
+            - tryLock() Allows waiting for a thread with a timeout
+            - Allows 'longest waiting thread' access
+            - Allows multiple separate conditions eg. NotFull or NotEmpty
+        ReadWriteLock (useful for caching!)
+            - Allows multiple concurrent readers (when no one is writing)
+            - Allows only one writer at a time
+        StampedLock
+            - Has an OptimisticRead mode
+            - Like CAS but auto-upgrades to heavy read lock if it fails
+
+Thread Lifecycle & States
+    -> Useful for debugging issues, to see what state threads were in
+    New: Created but not started
+    Runnable: Either executing in JVM or awaiting an OS thread (can't tell which)
+    Blocked: Awaiting a lock
+    Waiting/Timed_Waiting: Waiting for actions from another thread by signal
+    Terminated: Finished execution
+
+Executor Framework & Thread Pools
+    -> Creating a new thread is expensive in the OS, and context switching is costly.
+    ThreadPoolExecutor splits task submission from task execution:
+        - Worker threads: A pool of threads in a loop executing tasks
+        - Work queue: BlockingQueue holding tasks waiting
+        - Rejection policy: Define what happens when queue is full and threads all busy
+        Types:
+            FixedThreadPool: limiting resource consumption for known load. Unbounded queue can cause OOM
+            CachedThreadPool: for short-lived tasks. Can spawn many threads under sudden load.
+            ForkJoinPool:
+                Each thread has its own double-ended queue (deque)
+                Idle threads 'steal' tasks from tails of busy threads' deques keeping CPU busy.
+    Size of pool?
+        CPU-bound: Number of cores+1. More threads won't help as CPU is the bottleneck.
+        I/O-bound: Number of cores*(1+Wait-Time/Service-Time)
+    Graceful shutdown:
+        - shutdown(): Stop accepting tasks but finish queue
+        - awaitTermination(): Wait a duration
+        - shutdownNow(): Interrupts threads to shut down
+
+CompletableFuture
+    -> for non-blocking, event-driven pipelines
+    It promises a value that will eventually be available, allowing you to register tasks that trigger when the data is available.
+    Pipeline:
+        CompletableFuture.supplyAsync(() -> "User_123", myExecutor) //Start async task
+            .thenApply(id -> fetchUserFromDb(id)) // Returns a User object //Transform result
+            .thenAccept(user -> System.out.println("Hello, " + user.getName())); // Consume result
+        .thenCompose(): like a flatMap
+        .thenCombine(): combine results of 2 independent tasks in parallel
+        .allOf/anyOf(): return future when all or any of the future(s) completes
+        .exceptionally(): fallback if pipeline fails - used rather than try-catch
+
+        -> .get() or .join() block threads! Keep the pipeline async. Can be called if you _know_ the threads are done, like in a '.thenApply()'
+
+    Necessary after Virtual Threads?
+        Blocking-code is 'cheap', so CompletableFuture is less necessary for simple sequences.
+        It still makes complex orchestration of async tasks much easier when necessary.
+
+Concurrent Collections
+    ConcurrentHashMap
+        Java 7-: Segmented locking
+        Java 8+: CAS, synchronizing on first node of a bucket on collision
+        No global locks
+        Lock-free reads, using volatile reads of node values
+    CopyOnWriteArrayList
+        Immutable list, changed fully to n+1 on addition
+        Reading returns immutable list to be read from lock-free. Iterator is a snapshot.
+        Writes are extremely expensive.
+    BlockingQueues
+        Foundation for ExecutorPools
+        ArrayBlockingQueue: Bounded, good for backpressure
+        LinkedBlockingQueue: Unbounded, with higher throughput but risk of memory issues
+        DelayQueue: Elements taken out after delay has expired. Good for retry queues
+
+Atomic Variables and CAS
+    Compare-and-swap: Optimistic locking strategy
+    AtomicInteger: Wrapped CAS operations for thread safe increments
+
+    Mutex (ReentrantLock): lock has an owner. Can only be unlocked by owner.
+    Semaphore: No owner, any thread can lock/unlock
+
+    CountDownLatch: StartGate/FinishLine. Allows threads to wait until others complete.
+        Each thread counts down the Latch until it hits zero.
+    CyclicBarrier: All threads must wait for each other to reach a common barrier point
+
+    AtomicInteger
+        Single variable using CAS
+        Under load, the CAS-spinning causes significant CPU overhead.
+
+    LongAdder
+        Solves bottleneck of AtomicLong
+        Maintains internal array of variables called 'cells', allowing threads to be assigned different bits.
+        This reduces contention on write.
+        On read, it sums the internal array, giving the result.
+        Doesn't use CAS at all.
+        Prevents 'False Sharing', preventing unnecessary cache invalidations on updates.
+
+Virtual Threads
+    Lightweight threads that decouple Java threads from OS threads. They give higher throughput.
+    Previously, threads were Platform Threads, wrappers around OS threads
+        - Expensive
+        - Context switching
+        - Limited scalability
+    CompletableFutures were used to mitigate this, handling many concurrent requests with a few OS threads
+
+    Virtual Threads are managed by the JVm, stored as Java Objects on the heap.
+        - Cheap to create
+        - Cheap to block: when a VT blocks, JVM unmounts it from OS Thread, which then runs a different VT in waiting
+        - Familiar syntax: You can write simple, synchronous looking code that performs well asynchronously
+
+    JVM keeps a pool of Carrier Threads from the OS to distribute over.
+
+    Good for: web servers, microservices, I/O operations that wait for a response
+    Bad for: CPU-bound tasks, where having a single OS-level thread is superior to the VT overhead
+
+    Caveats:
+        - Don't pool virtual threads: they are cheap to create and keep en-masse
+        - Pinning: if code hits a synchronized block or calls JNI native methods, it cannot be unmounted from the OS thread
+
+Common Pitfalls
+    Deadlock: two threads waiting for each other to release a lock
+    Livelock: Threads constantly changing state in response to each other but making no progress
+    Starvation: Thread permanently denied access due to other 'greedy' threads taking priority
+    Race Conditions: When output depends on timing or interleaving of threads
+
+---
+
+Adyen Context
+- High-throughput processing (Virtual Threads)
+    Lots of I/O from APIs and DB calls.
+    Previously, a thread pool would be used, which could block on high load
+    With VTs, thousands of concurrent payment attempts can be made, allowing a
+      thread-per-payment model making code easier to maintain and debug
+
+- Real time transactions (LongAdder)
+    Lots of global metrics (num txns, total volume etc).
+    Contention on AtomicLong would be huge, creating a bottleneck
+    Using LongAdder allows telemetry easily without slowing down actual payment processing
+
+- Rate-limiting & Backpressure (Semaphore)
+    Strict limits on number of requests to payment networks
+    Using a Semaphore(50) allows 50 threads to work, while the 51st must block and wait.
+
+- Consistent State & Caching (ReadWriteLock)
+    Lots of config data (like rules for countries etc) updated occasionally but read a lot
+    A synchronized block would make the reads a disaster.
+    A ReentrantReadWriteLock or StampedLock allows reading simultaneously, while blocking on updates
+
+- Parallel Risk Checks (CompletableFuture)
+    On clicking 'Pay', lots happens - fraud checks, 3DS verification, merchant rules etc
+    These should all happen in parallel, so we chain CompletableFutures and combine results before proceeding
+
+Possible Scenario:
+    "We have a service that collects payment results from five different regions.
+    We need to aggregate them and calculate a risk score.
+    If one region is slow, we shouldn't block the others, but we must have a final answer within 500ms.
+    How do you build this?"
+
+    Answer:
+        1. Create a completableFuture for each region
+        2. Use an appropriately size ExecutorService
+        3. Timeout on futures to prevent waiting
+        4. Aggregate using allOf, possibly defaulting a score if a region throws an exception
