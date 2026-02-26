@@ -52,3 +52,19 @@ Code Cache:
     Used by JIT
     Hot code paths are optimised as machine code and stored here
     If full, the JVM will stop compiling code leading to performance drops
+
+JIT:
+    Just-in-time compilation
+    C1 used first: fast to run, but code is simple
+    C2 used on hot paths: slow, but produces highly optimised code
+    Functions too big to optimise might not be inlined (slower)
+    Uses optimistic assumptions (eg. This var will never be null), but if wrong it must fall back to C1 code,
+      This is called 'de-optimisation'.
+
+Monomorphic
+    If JVM observes only a single concrete implementation of a method is called, it inlines
+Bimorphic
+    Optimises to an inlined if-else
+Megamorphic
+    Three or more implementations
+    Falls back to Virtual Table Lookup
