@@ -1,0 +1,106 @@
+How to make my VelocityCheck 'production ready'
+    Even using a ConcurrentHashMap and ConcurrentSkipListMap for an O(log n) solution,
+        there will still be issues with scaling into a high-throughput production environment.
+
+    1. Code-level risks
+        - Unbounded memory growth:
+            Nothing is pruning old data or timestamps.
+            This will cause an OutOfMemory issue without exception.
+        - ConcurrentSkipListMap causes high GC pressure
+
+        Solution: Eviction strategy
+            Using a background thread, you can use the SkipListMaps range and headMap functions
+                to effectively prune old data
+
+        - Caffeine in-mem cache
+            - Automatic evictions
+            - Async maintenance on separate thread pool
+            - Built-in statistics for monitoring
+
+        Ideal scenario:
+            - Hit Caffeine cache first (no network call)
+            - On cache miss, go to redis
+            - On cache miss, go to database
+            - Redis Pub/Sub can keep all local nodes up to date
+
+    2. Distributed Scalability
+        Since the cache sits on a single server, it won't work well behind any load balancer.
+        If requests go to different servers, the Map may not represent all txns for each card.
+
+        Solution: Externalise the state
+            - Redis Sorted Sets (ZSET): Hashed card number as key, store timestamps as the score and value
+                - ZSET:
+                    - Collection of unique elements, each associated with a score.
+                    - Collection is automatically ordered low-high
+                    - Uses a HashMap -> SkipList under the hood!
+                - How it works for Velocity:
+                    - Data:
+                        - Key: Hashed card number (eg. velocity:card:abc123)
+                        - Score: Payment timestamp in milliseconds (eg. 1708943793000)
+                        - Member: Transaction ID (eg. txn-1234)
+                            The member must be unique! Timestamps can be duplicated, so we need something for the SET to work.
+                    - Algorithm:
+                        1. Evict old data (ZREMRANGEBYSCORE): remove scores (timestamps) less than start time of current window
+                            -> The TTL expiry works for the card hash, not the payment entries within the card. These must be manually removed.
+                        2. Add data (ZADD): insert new payment using timestamp, card number and txn ID
+                        3. Count window (ZCARD): count current number in set. After removals, the entire set is valid.
+                        4. Set expiry (EXPIRE): Set a TTL on key for the window duration
+                            -> This removes old cards, not card values
+                - Challenges:
+                    - Race Conditions and Atomicity:
+                        These Redis commands must be wrapped in a Redis script or transaction pipeline
+                          Otherwise, multiple threads will affect it simultaneously
+                          Redis uses a single-threaded event loop, so a Lua script will block other operations until it completes, ensuring order.
+                          Doing multiple calls from Java breaks this guarantee of ordering.
+                    - Time Complexity:
+                        The Redis implementation is a combination of a HashMap and a SkipList.
+                        - Finding the set by card hash is O(1)
+                        - Adding element: O(log n) as Redis traverses the SkipList to find the right place to put it
+                        - Removing old elements: O(log n + m) where n = total elements and m = number of elements removed
+                            SkipList traverses to element in O(log n) and then traverses underlying linked-list removing nodes
+                    - Memory:
+                        - This still requires Redis to keep every transaction in a given window which can be huge and susceptible to explosive growth
+                        - This is where you need a token bucket.
+                - Redis availability
+                    - Uses leader-follower, automatically promoting to leader if it fails
+                    - Cluster allows shards across nodes to handle more traffic
+
+    3. Operability & Resilience
+        - Fail Open/Closed: If Redis goes down, do we stop payments or proceed to allow legitimate transactions?
+            You should also have fallbacks, such as a local cache on the node for 'best-effort' safety
+        - Circuit Breaker: Timeouts and Failures should be handled gracefully
+            Hammering Redis with even more requests is unlikely to make anything better.
+                - Closed: Everything is healthy, requests to Redis an normal
+                - Open: Redis is down or timed out too many times. Application stops calling Redis for a time period,
+                          and falls back to an alternative (such as local cache)
+                - Half-open: Circuit allows a few 'test' requests through to determine if circuit should close again
+        - Observability:
+            - Metrics: record latency, throughput and data like number of breaches
+                - Latency (p99): how long is Lua script taking? A p99 latency spike means processing is slow
+                    - Averages are misleading. Doesn't catch outliers of bad performance.
+                    - P99 says '99% of txns are faster than this, showing the worst case outliers'
+                    - If p99 latency hits 2 seconds, it means 1% of customers see the loading screen for that long for a background check.
+                    - p99 should be as close to p50 as possible.
+                - Error rate: primary trigger for circuit breaker
+                - Hit rate: How often are payments _actually_ being blocked? Spikes can indicate a coordinated fraud attack
+                - Redis memory usage
+            - Logging: structured logs allowing for debugging and visibility
+        - Clock synchronisation:
+            Distributed systems have clocks that drift. Safer to rely on centralised clock or datastore's internal time
+            The payment timestamp comes from outside and may not be accurate.
+            In Redis, you can add the timestamp from its internal clock, rather than the timestamp provided.
+
+    4. Algorithmic Alternatives
+        Even Redis can become constrained under high load. We can use alternative algorithms.
+            - Sliding Window counter:
+                Divide time into buckets (eg. 1-min intervals), incrementing counters for each bucket.
+                You lose some precision on boundaries, but you reduce memory usage drastically.
+            - Token Bucket:
+                Standard rate-limiting algo that stores 2 values per user: current token count and last refill timestamp.
+                The bucket 'refills' at a constant rate (representing allowable txns) to a cap (max allowable in a given window)
+                  and removes on payments.
+                + Fixed memory footprint per card
+                + Bursty support
+                + Simple logic
+                - Loses precision, as the bucket averages out the refill rate rather than knowing the exact txns in a window
+                Allows O(1) operation if done correctly.
