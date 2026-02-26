@@ -1,5 +1,7 @@
 Backpressure is a feedback mechanism allowing a system to signal to upstream producer that it
     is receiving data faster than it is consuming it
+    -> It is a reactive signal
+    -> Rate-limiting is a proactive signal
 
 Problem
     Unbounded Queues: Producer can flood a queue with requests, leading to an indefinitely growing queue.
@@ -23,3 +25,18 @@ Strategies
 In Payment Context
     - Public API Gateway: uses rate-limiting (proactive backpressure) to return 429 errors
     - Internal microservices: bounded queues, with fail open/closed when full
+
+---
+Rate Limiting
+    1. Token Bucket (burst friendly)
+        Tokens added at fixed rate, requests use a token, if empty, reject request.
+        Great for batching work.
+    2. Leaky Bucket (Smooth choice)
+        Imagine a bucket with a small hole. Requests are poured in at any speed, but 'leaks'
+            at a consistent rate. If it overflows, requests are discarded.
+
+HTTP with RL
+    Include headers in response for clients to be smarter
+    x-RateLimit-Limit: total allowance
+    X-RateLimit-Remaining: token left
+    Retry-After: timestamp of when to try again
