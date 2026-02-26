@@ -1,0 +1,22 @@
+CAP Theorem
+    In a distributed environment, you must choose 2 of the following at any given time:
+    - Consistency: Every read received most recent write, or error out across all nodes
+    - Availability: Every request receives a non-error response, without guarantee of most recent write
+    - Partition Tolerance: System continues to operate despite dropped messages or network issues
+
+    -> In modern systems, Partition Tolerance is a given. So you must choose between Consistency or Availability.
+
+    - CP: On network break, you stop accepting updates to prioritise accuracy.
+        Necessary for financial ledgers.
+    - AP: On network break, keep responding despite serving 'stale' data.
+        Okay to show a slightly outdated comments section
+    - CA: Only available on a single node setup without a network
+
+PACELC
+    CAP describes the 'failure scenario' during network partition issues.
+    PACELC describes 'normal operation'.
+
+    *Partitions: choose between *Availability or *Consistency
+    *Else: choose between *Latency or *Consistency
+
+    When network is normal, do you want fast latency by not waiting for syncing, or consistency by waiting for all nodes to sync?

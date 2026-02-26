@@ -35,6 +35,7 @@ Isolation Levels
         A transaction only sees data committed before the query began.
         General purpose, used for most CRUD operations.
         Great for non-sensitive data (like a comment) or for fetching a single row.
+        You can use pessimistic or optimistic locking per-row to achieve consistency without changing from this level.
         + Prevents dirty reads of uncommitted data
         + High performance and lowest locking overhead
         - Allows non-repeatable reads (checking balance twice in one transaction could have 2 different numbers if a deposit happened in between)
@@ -42,6 +43,8 @@ Isolation Levels
     2. Repeatable Read
         Provides a snapshot of data when the first query of the transaction starts, ignoring commits from other transactions in between.
         Provides a consistent point-in-time snapshot useful for consistent reporting.
+        Ensures the view of data is consistent, but not that decisions made on that data remain valid at the point of a COMMIT.
+        Provides Repeatable Reads, not Read-Write dependencies.
         + Great for report generation or audits that need a consistent view of entire ledger at a point in time
         - If you update a row another txn modified and inbetween, you get a database error. Requires retries
     3. Serializable

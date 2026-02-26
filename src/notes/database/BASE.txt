@@ -1,0 +1,12 @@
+BASE
+    Designed for high availability and scalability compared to ACID databases
+
+4 Pillars
+    1. Basically Available
+        Availability (as per CAP theorem) is guaranteed, but not that all nodes have the latest data.
+        A response is always given, even if from a stale node.
+    2. Soft State
+        System constantly working to synchronise with other nodes, making state 'fluid' rather than 'fixed'.
+    3. Eventual Consistency
+        Provided there are no new updates, the system will be consistent with enough time given for synchronisation.
+        Until then, users can see 'different' versions of the same data.
