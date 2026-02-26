@@ -1,0 +1,25 @@
+Backpressure is a feedback mechanism allowing a system to signal to upstream producer that it
+    is receiving data faster than it is consuming it
+
+Problem
+    Unbounded Queues: Producer can flood a queue with requests, leading to an indefinitely growing queue.
+    Leads to:
+        - Memory exhaustion: OOM
+        - High latency: messages at back of queue take too long
+
+Strategies
+    - Control Producer
+        Request only n items at a time by 'pull'
+    - Dropping
+        Discard incoming messages if not critical
+        For non-essential telemetry or logging in peak times
+    - Buffering
+        Strict queue size
+        When full, producer is blocked until slot opens
+        Can lead to thread starvation
+    - Shedding Load
+        Using circuit breakers to return 503-ServiceUnavailable or 429-TooManyRequests
+
+In Payment Context
+    - Public API Gateway: uses rate-limiting (proactive backpressure) to return 429 errors
+    - Internal microservices: bounded queues, with fail open/closed when full
