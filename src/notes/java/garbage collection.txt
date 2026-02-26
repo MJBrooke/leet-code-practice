@@ -1,0 +1,54 @@
+Java's Garbage Collection
+    GC greatly affects p99 latency, and can cause timeouts in payment gateways
+
+Generational Setup
+    - Young generation (Eden):
+        New objects created here and die as 'minor GCs'
+        For high-speed, frequent cleaning
+    - Survivor Spaced (S0/S1):
+        Used to 'age' objects between young and old.
+        For objects that survive Minor GC's
+    - Old Generation (Tenured):
+        Long-lived objects promoted here after surviving multiple GCs (such as thread pools)
+        More expensive to clean, less frequent
+
+Key Collector implementations
+    - G1 (Garbage First)
+        - Splits heap into small regions, clearing those with mostly garbage first
+        - Adjusts amount cleaned to stick to latency goals
+        - Has Stop-The-World events, dedicating 100% CPU to GC
+    - ZGC (Z Garbage Collector)
+        - All work is concurrent while application threads are running
+        - Pause times are sub-millisecond
+        - Lower throughput than G1 as GC does work while CPU is busy with other work
+
+    - Which to use?
+        Depends on SLA. Most microservices can use G1 as the default.
+        For sensitive parts (such as a real-time risk engine) where we optimise P99.9, we would use ZGC.
+
+Observability:
+    - Java offers a unified logging library (-Xlog:gc*)
+    - Key metrics:
+        - Allocation rate (small Eden causes constant minor GCs)
+        - Promotion rate (Old gen growing too quickly)
+    - JDK Mission Control
+
+The Stack:
+    Tracks thread execution and local variables
+    LIFO per thread
+    Primitives and references to objects stored here
+    Super fast, not garbage collected (stacks pop off during execution)
+
+The Heap:
+    Warehouse for all stored objects
+    Shared across all threads. Where race conditions usually occur.
+    Managed by the GC.
+
+Metaspace:
+    Stores class metadat (names, methods etc)
+    Can be affected by generating classes on the fly like Hibernate
+
+Code Cache:
+    Used by JIT
+    Hot code paths are optimised as machine code and stored here
+    If full, the JVM will stop compiling code leading to performance drops
