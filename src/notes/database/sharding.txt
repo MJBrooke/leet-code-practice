@@ -1,0 +1,48 @@
+Sharding
+    Primary way to horizontally scale relational databases
+    We break up large datasets into smaller chunks called shards distributed over multiple databases
+
+Why shard?
+    - Improve throughput
+    - Increase storage
+    - Isolate failures (continue responding for some users from other shards)
+
+Strategies:
+    A shard key decides which shard the data goes into
+    - Key-Based Hashing
+        Use a value like merchant_id or country to determine shard
+        + Fast and even distribution
+        - Slow when adding new shards due to re-hashing of all data
+    - Range-Based
+        Based on range, like A-M and N-Z
+        + Simple
+        - Creates hot-spots (with dates, today is crushed while yesterday is okay)
+    - Directory-based
+        Maintain a lookup table mapping IDs to shards
+        + Flexible - can be deterministically done, with a merchant getting their own shard, for example
+        - Lookup table becomes a single point of failure
+
+Consistent Hashing
+    Helps when resharding on hashing is necessary.
+    Instead of mapping hashes to servers directly, you hash to a 'ring'.
+    You map servers to a spot on the ring, and hash values to a spot on the ring.
+    The closest clockwise DB is assigned the data.
+
+    Adding a new server only steals from the prior neighbour, preventing rehashing of entire Shard set.
+    To prevent hot shards, we can put each server on the ring multiple times, distributing traffic from multiple hashes.
+
+    In the context of Balancing and Distributed caching, consistent hashing allows the same traffic to flow to the same cache/service.
+
+Challenges:
+    - Joining across shards
+        Either join in application code or denormalise data so all necessary info is on the shard
+    - Global uniqueness
+        Cannot rely on auto-increments or UNIQUE constraints. Use UUIDs or global ID generators.
+    - Hot Shard
+        Shards can have more traffic than others depending on how they were split
+    - Replication
+        Multiple dbs on the ring should contain duplicate data ensuring redundancy
+
+In financial context:
+    - shard choice: by merchant_id, keeping all txns, settlements and settings in a single physical server
+    - operational maturity: It adds significant operational complexity (backups, migrations, monitoring)
