@@ -1,0 +1,34 @@
+The SAGA Pattern
+    Failure management strategy in microservice architecture
+    Maintains data consistency across distributed systems without multiphase transactions
+        across independent databases.
+    If one part fails, system is left in a consistent state.
+    It is used in lieu of traditional ACID DB transactions, as series of sequential local transactions.
+    Every step has a corresponding 'compensation transaction' to restore balance.
+
+Two approaches:
+    1. Choreography (event-based)
+        No central boss - each service performs its task and emits an event.
+        The next service listens for it and reacts.
+        + Simple, no single point of failure
+        - Hard to track state of complex transfer
+
+    2. Orchestration (command-based)
+        A central 'saga orchestrator' tells each service what to do when
+        + Allows complex workflows, easy to debug and monitor
+        - Orchestrator becomes a critical component
+
+Example: international transfer
+    x. Action - Undo Action
+    -----------------------
+    1. Reserve money in account - Unfreeze money in account
+    2. Sanction check - Mark as rejected
+    3. Execute forex - reverse trade at current rate
+    4. credit destination account - N/A (final step)
+
+Challenges:
+    - Isolation (in ACID): Systems may read data from the partial SAGA workflow before finished
+    - Idempotency: Messages can be sent twice - each workflow must be able to run multiples times without doing the action twice
+    - Observability: A control plane or dashboard is needed to see where in the SAGA flow an operation is and status
+
+I have actually used this pattern a lot at AWS!
