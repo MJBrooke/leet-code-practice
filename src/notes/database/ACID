@@ -1,0 +1,68 @@
+What is ACID?
+    4 properties that a relational database transaction guarantees for reliability and consistency.
+
+4 Pillars
+    - Atomicity
+        A transaction is 'all or nothing', rolling back if any part fails
+    - Consistency
+        Each transaction leaves the database in a valid state, maintaining all rules and constraints
+    - Isolation
+        Concurrent transactions should not interfere with each other. Work on the same row must be sequential.
+    - Durability
+        Once committed, a transaction survives power fail, crashing and power outages (ie. written fully to disk)
+
+Uses Write-Ahead-Logging (WAL)
+    Changes to data are only written after changes are persisted to a persistent log file
+    1. On UPDATE/INSERT, Postgre describes change in a WAL record
+    2. These are written sequentially, making them fast
+    3. Transaction is only 'committed' if WAL are on disk
+    4. Actual data files are updated later in the background. If a crash occurs, Postge replays the WAL records to restore state
+
+Two-Phase Commit (ACID across databases)
+    A coordinator manages the transaction across multiple databases
+    1. Prepare phase: each database checks constraints and writes the WAL, locking the data and responding yes/no
+    2. Commit phase: if all yes, coordinator sends command to 'commit' acorss all databases. If no, everyone rolls back.
+    + Highly consistent
+    - Slow due to long-held locks
+    -> In high throughput environments, SAGA is preferred at the cost of 'eventual consistency'
+
+Isolation Levels
+    Determines how a transaction 'sees' data that other concurrent transactions are modifying.
+    It is a trade-off between accuracy and system performance.
+    It is usually informed by the scope of the transaction - is it a simple read/write of a record, or a complex one involving multiple rows?
+
+    1. Read Committed (Default)
+        A transaction only sees data committed before the query began.
+        General purpose, used for most CRUD operations.
+        Great for non-sensitive data (like a comment) or for fetching a single row.
+        + Prevents dirty reads of uncommitted data
+        + High performance and lowest locking overhead
+        - Allows non-repeatable reads (checking balance twice in one transaction could have 2 different numbers if a deposit happened in between)
+        - Not safe for calculations across accounts
+    2. Repeatable Read
+        Provides a snapshot of data when the first query of the transaction starts, ignoring commits from other transactions in between.
+        Provides a consistent point-in-time snapshot useful for consistent reporting.
+        + Great for report generation or audits that need a consistent view of entire ledger at a point in time
+        - If you update a row another txn modified and inbetween, you get a database error. Requires retries
+    3. Serializable
+        Strictest level, guaranteeing results of transactions as if they were run sequentially.
+        Great for complex financial integrity, where you 'check then act across rows and tables'.
+        Use for conditional multi-row logic
+        + Gold standard for consistency in sensitive txns
+        - Highest performance overhead and serialization failures
+        - You must have explicit retry logic as transactions interfered with will be failed by the DB
+
+    The 4th version is 'Read Uncommitted' which allows dirty reads, but PostgreSQL reverts to 'Read Committed'
+        Based on underlying implementation, this provides no performance benefit so it defaults to safer versions
+
+How to solve double-spending problem
+    Single-row updates
+        1. Pessimistic Locking (SELECT ... FOR UPDATE)
+            Allows READ COMMITTED with explicit lock for row being checked/updated
+        2. Optimistic Locking (Versioning)
+            1. Read the value and current version number
+            2. Calculate new value
+            3. Only update live version number matches (ie. no other transaction made changes to it)
+            4. Check if the update changed '0 rows', allowing retry or fail
+    Multi-row updates
+        Use serializable if multiple rows/tables are involved that all need to be locked together for integrity
