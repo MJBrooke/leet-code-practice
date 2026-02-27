@@ -1,0 +1,45 @@
+OAuth2 (Authorisation)
+    Allows 3rd party applications to get limited access to an HTTP service.
+    It doesn't say who it is, but says when the token can do on the user's behalf.
+
+    Roles:
+        - Resource owner: You
+        - Client: App wanting programmatic access
+        - Auth server: Token issuer (eg. Google)
+        - Resource server: The API being accessed
+    Artefact: A JWT or token
+
+    Used for external software to pull reports from Adyen. Classic OAuth2 case.
+
+OIDC (Authentication)
+    Thin layer on top of OAuth2.
+    If OAuth2 is the key, OIDC is the identity badge
+    Artefact: ID Token as a JWT with claims
+        - email, issued at, subject etc
+    Standardised how identity is shared
+
+    Authorisation Code Flow with PKCE (Proof Key for Code Exchange)
+        Prevents auth code interception attacks
+
+The Flow
+    1. The Setup (User clicks Connect-to-Adyen)
+        Caller app generates a token (code_verifier) and hashes it, saving it as a code_challenge
+        App redirects browser to Adyen Identity Server including
+            - client_id
+            - scope (what it wants)
+            - code_challenge
+    2. Auth and Consent (OIDC part)
+        Adyen logs you in with your auth credentials (username/password)
+        Adyen asks if you want to allow the asked for scope. If yes:
+            Adyen redirects back to app with temporary Auth Code in URL
+    3. Secret-exchange
+        Tax app (server-to-server, not browser) send AuthCode + code_verifier to Adyen identity server
+        Adyen hashes the code_verifier, checking it matches the code_challenge
+    4. Tokens Issued
+        Adyen sends:
+            - Access Token: Key allowing access to its API
+            - ID Token (OIDC): JWT representing user
+            - Refresh-token: For renewing token
+    5. Using the data
+        Tax App calls Adyen API with Access Token in Headers
+        Payments API checks token signature
