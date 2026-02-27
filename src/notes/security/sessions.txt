@@ -1,0 +1,24 @@
+Sessions (Stateful)
+    Server creates a 'session' in db or cache and send session ID to user in a cookie
+    On every request, servers looks up the ID to ensure user is still logged in.
+    + Easy to revoke, as deleting the ID causes immediate 'logout'
+    - Scalability bottleneck: every request requires an API call and lookup
+
+    Likely used for a merchant dashboard where they may need to revoke an admin's access
+
+JWT (Stateless)
+    Like a 'passport' the server signs. No storage in server at all.
+    Token contains user's ID, roles and expiry time.
+    The server verifies the digital signature of the token. If valid, it is trusted without a db lookup.
+    + Horizontally scalable: Any server in any region can verify if it has the public key.
+    - Once a JWT is issued, it is valid until it expires. There is no central removal process.
+    - Entire JWT is sent with every request, causing extra request bulk
+
+    How to solve revocation?
+        - Short-lived tokens to reduce blast radius
+        - Refresh-tokens stored in DB can be killed to prevent renewing the JWT
+        - Blacklisting: maintain 'deny list' of revoked JWT ID's. Not stateless, but adds security.
+
+    Used in M2M APIs, to increase performance
+
+Excellent explanation video: https://www.youtube.com/watch?v=fyTxwIa-1U0

@@ -46,6 +46,7 @@ Password Hashing (Storage Security)
     Considerations:
         - Latency: if cost is too high, it can slow the system or lead to DoS vulnerability
         - Iterative upgrades: upgrade to higher security on new user logins, since you don't have the actual password until then
+    Good video: https://www.youtube.com/watch?v=zt8Cocdy15c
 
 Consistent Hashing (System Scalability)
     Allows hashing to a 'ring' of nodes, allowing for more dynamic add/remove of nodes
