@@ -1,0 +1,4 @@
+Payment Card Industry Data Security Standard
+    Security standards to ensure all companies accept, process, store and transmit credit card data securely.
+    Tokenisation is used to make the 'PCI-compliant section' of the network as small as possible for auditing.
+    Encryption protects the data, but tokenisation removes the sensitive data from scope entirely.
