@@ -1,0 +1,19 @@
+Necessary for PCI DSS Compliance
+    If a service doesn't _need_ to see a card number, it shouldn't have access to it
+    Swapping it for a token representing it reduces PCI scope, while only the vault keeps the actual value.
+
+Flow of vault-based tokenisation
+    1. Ingestion
+        Tap card at terminal, encrypted card data sent to Secure Gateway.
+        This is the only place the card number is decrypted and see in plaintext.
+    2. Vaulting
+        Gets sent to Token Vault.
+        Stored in encrypted database.
+        Unique random token made that maps to card.
+    3. Propagation
+        Sends on the token_id to the rest of the services
+    4. Detokenisation
+        Payment processor send token_id to vault.
+        Vault retrieves it and forward it securely to the bank.
+
+Tokenisation should be a UUID for payments, and should be salted for analytics.
