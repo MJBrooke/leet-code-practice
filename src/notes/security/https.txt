@@ -1,0 +1,33 @@
+HTTPS (TLS)
+    This is a means of creating a secure connection between 2 participating nodes
+        that encrypts and hides all information inside each request/response to prevent snooping.
+
+The flow (TLS 1.2): RSA Key Exchange
+    1. TCP Handshake (creating a non-secure connection first):
+        Client attempts connection to server (TCP SYN, TCP SYN+ACK, TCP ACK).
+        At this point, a connection has been successfully established.
+    2. Certificate Check (Exchanging Asymmetric info):
+        Client tells server which TLS protocols it can handle.
+        Server ACKs it, and provides their certificate.
+            The certificate contains the public key for encryption.
+        The Client checks a trusted authority to verify the certificate is valid.
+        At this point, the client and server 'trust' who they say they are and the public key is known.
+    3. Key Exchange:
+         The client creates a symmetric session key for encryption, and encrypts it with the public key.
+         It gets sent to the server, where it is decrypted using the private key.
+         Now both sides have the same symmetric key for encryption/decryption.
+    4. Data transmission:
+        Both sides send and receive encrypted payloads, and decrypt using the session key.
+        Symmetric encryption is faster and more suitable for large payloads after the initial exchange.
+
+More modern approach (TLS 1.3):
+    1. TCP handshake is the same
+    2. Certificate phase:
+        Certificate check and Key Exchange is done in a single step.
+        The Diffie-Hellman exchange is used to already send one half of the Key Share from the client.
+    3. The symmetric key is never sent over the wire.
+        The key is mathematically derived together but independently.
+
+    If the private key is every leaked or stolen, it was only used to create the secure connection.
+    The symmetric key used for encryption/decryption is never shared over the wire.
+    With TLS 1.2, if the attacker gets the private key, they can actually crack the symmetric key and decrypt all prior traffic if it was saved.
