@@ -1,0 +1,56 @@
+Hashing
+
+Cryptographic Hashing (Data Integrity)
+    Ensures that data is not tampered with between participants.
+    Goal: Take an input and produce a fixed-size string that is computationally impossible to reverse or spoof
+    Algorithms: SHA-256 (MD5 is vulnerable to collision attacks)
+    Application: Using HMAC with a secret key to hash.
+
+HMAC (Hash-based Message Authentication Code)
+    Solves:
+        - Integrity: Has the data changed?
+        - Authenticity: Did it come from who I think it did?
+    SHA-256 only deals with Integrity, not authenticity.
+    HMAC uses a Shared Secret Key.
+        Sender takes the messages and appends a secret key (known to sender and receiver)
+        Hashed together Hash(Message + Secret)
+        Original message is sent with the hash.
+        Receiver takes the message, appends their copy of the key, hashes it and compares the signature.
+        If they match, it is authentic as a spoofer does not know the key needed to make the right hash.
+    When a merchant account is setup, Adyen provides an HMAC Key.
+        When Adyen sends the request to your webhook, they include the X-Adyen-Signature header.
+        Merchant backend must recalculate the HMAC using the raw request body and the stored key
+            and compare the signature before processing any payment.
+    Security considerations:
+        - A Nonce (number used once) or timestamp can be added to prevent repeat sending of the request
+        - Constant-time string comparison: if a string comparison exits early, attackers can learn it over time
+        - Payload ordering: Order of fields in the request body matter as they change the hash despite having the same data.
+
+Password Hashing (Storage Security)
+    Standard hashing like SHA-256 is too fast, leading to possible brute force attacks.
+        Include Salting and a Cost Factor
+    Algorithms: Argon2 or bcrypt
+    Pillars:
+        - Salting (prevents rainbow table attacks)
+            Unique, random string added to password before hashing
+            Stored in plain text alongside hash, but unique per user.
+            Even if users have the same password, their hash is different, forcing hackers to crack passwords individually
+        - Cost Factor (thwarts brute-force)
+            Artificial slowing of hash computation
+                - bcrypt: uses many iterations
+                - argon2: how much RAM is needed (breaking ASICs)
+        - Peppering (extra layer)
+            Like a salt, but stored in an HSM (Hardware Security Module) or environment secret
+            Even if a SQL dump is taken, attackers won't have the 'salt' portion
+    Considerations:
+        - Latency: if cost is too high, it can slow the system or lead to DoS vulnerability
+        - Iterative upgrades: upgrade to higher security on new user logins, since you don't have the actual password until then
+
+Consistent Hashing (System Scalability)
+    Allows hashing to a 'ring' of nodes, allowing for more dynamic add/remove of nodes
+        without causing a full rehashing of all entries
+    It also allows for a given merchant to always hit the same servers for 'sticky sessions'
+        or to ensure the same local cache is used
+
+Non-Crypto Hashing (Performance)
+    Used for things like HashTables to speed up data access
