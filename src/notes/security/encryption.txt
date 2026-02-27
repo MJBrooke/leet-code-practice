@@ -1,0 +1,37 @@
+Symmetric (AES-256)
+    The same key is used for encryption and decryption
+    + Extremely fast
+    - Key distribution is tricky - how do you securely provide it to the merchant and ensure they don't leak it?
+    A better use case is encrypting records in the database with sensitive info, but which need to be converted back to
+        their original values (unlike password hashing)
+
+Asymmetric (RSA)
+    Public Key encrypts, Private Key decrypts.
+    + Solves key distribution. It can be shared openly.
+    - Computationally expensive
+    Used to establish a secure connection (TLS) or to exchange a symmetric key.
+        - Public key: not a secret. Encrypts data and verifies a signature.
+        - Private key: actual secret. Used to decrypt or create a signature.
+    Flow:
+        - Adyen hashes the message
+        - Adyen signs the hash with the private key
+        - merchant uses public key to verify the signature
+    Considerations:
+        - Asymmetric is expensive. it is used to exchange a temporary session key
+        - Symmetric is used to actually encrypt the data which is faster.
+
+Encryption in Transit (TLS)
+    - Mutual TLS: Both client and server provide a certificate to each other to prove identity on both sides.
+    - Transmission vs E2E: A load balancer can decrypt and pass it along or does each application decrypt it?
+        One is faster, the other is safer.
+
+How do we mitigate security of a single key?
+    Using a hierarchy of keys (Envelope Encryption):
+        1. Data encryption key: symmetric key that encrypts the actual data in the db
+        2. Key encryption key: master key that decrypts the data encryption key
+        You store the encrypted data encryption key with the data it encrypted.
+            The KEK is used to decrypt it, but it lives safely in the HSM
+        To rotate keys, you only re-encrypt the key encryption key.
+
+Certificate Management
+    About designing Public Key Infrastructure (PKI)

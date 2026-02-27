@@ -1,4 +1,5 @@
 Hashing
+    One way obfuscation of data.
 
 Cryptographic Hashing (Data Integrity)
     Ensures that data is not tampered with between participants.
