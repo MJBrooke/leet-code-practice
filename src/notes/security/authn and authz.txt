@@ -43,3 +43,13 @@ The Flow
     5. Using the data
         Tax App calls Adyen API with Access Token in Headers
         Payments API checks token signature
+
+API Keys
+    Long lived unique string identifying a specific application or project.
+    Like a VIP pass to get access to services that allow your traffic in.
+    Usually passed in an X-API-Key header with the request.
+    + Very simple
+    - Usually permanent. If leaked, attacker has full access until manually rotated.
+
+    It is not scoped to role or users - it is all-or-nothing access.
+    OAuth2+OIDC is superior for limiting blast radius.
