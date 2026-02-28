@@ -1,0 +1,43 @@
+Monitoring
+    Represents symptoms
+
+Observability
+    Ability to infer internal state from system outputs
+
+Pillars:
+    - Metrics (aggregatable data)
+        Numerical representations of data measured over time
+        Key signals: latency, traffic, errors, saturation
+        Can be pulled by Prometheus or pushed by clients
+    - Logging (event details)
+        Immutable records of discrete events.
+        It should be structured and indexed to be searchable.
+    - Distributed tracing
+        Trace ID is generated at API gateway and passed to all downstream services
+        Spans are records of work done in a single service (eg. Query time or external service call time)
+        The ID should also be sent with all async messages
+        OpenTelemetry is an industry-standard framework for collecting these in a vendor-neutral manner
+
+Sampling
+    Recording traces and spans for every operation is expensive on high throughput.
+    You can record a smaller percentage to be representative of the whole.
+    You can also only propagate 'interesting' metrics like slow calls or errors.
+
+Example debug flow
+    1. Prometheus sends alert that 'payment service' latency is high
+    2. Grafana dashboard show spike is happening on the POST /v1/authorize endpoint
+    3. Open tracing software to see complete E2E flow and where it failed
+    4. Log analysis searching with the trace ID to see only relevant logs
+
+    Root cause is now clear without touching any servers.
+
+ELK stack
+    ElasticSearch: stores and indexes logs (using inverted indexes!)
+    Logstash: Data pipeline ingesting data from servers, creating structured JSON
+    Kibana: Visualisation over ElasticSearch, allowing dashboards, heatmaps and alerts
+
+    Sometimes, a sidecar or daemon lives alongside each application to push logs directly.
+
+    In a high throughput environment, this sidecar will send logs to a Kafka queue to be pushed asynchronously
+
+    Note that prometheus is still necessary for metrics! ELK is for logs.
