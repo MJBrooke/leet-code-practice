@@ -1,0 +1,39 @@
+Solves 'how we keep our data in sync' problem is large distributed systems.
+It is the process of observing all changes to databases and streaming those changes to other parts of the system.
+
+Why not Dual-Writes?
+    Classic approach is writing to the database and then sending the message to Kafka.
+    Problem is that if the DB succeeds but the Kafka message fails, your data is out of sync.
+    Solution is to only write to the DB, while the CDC engine 'tails' the db logs to handle distribution.
+
+Approaches
+    - Polling
+        + Easy, no special access needed
+        - High overhead from constant polling
+        - Deletes are hard to track
+    - Log-based
+        Use the Write-Ahead-Log of the DB.
+        CDC engine reads the WAL, converts it to JSON and pushes it to a message bus.
+        + No application logic needed
+        + Deletes handled
+        + Low latency
+
+Example
+    When writing to the core ledger, we need to:
+        - Update Fraud Detection
+        - Synchronise a search on ElasticSearch
+        - Feed a data warehouse
+    Workflow:
+        - Transaction is processed and written to Postgre ledger
+        - CDC reads Postgres WAL
+        - Even published to topic
+        - Multiple consumers use the event to update systems independently
+
+Gotchas
+    - Events for the same ID must be hashed to same Kafka partition
+    - Usually 'at-least-once' delivery, so all downstream consumers must be idempotent
+    - Schema changes must be handled gracefully by consumers with a Schema Registry
+    - For initial implementation, you need a snapshot phase before streaming mode
+
+This system keeps the database as the source of truth, but decouples the ledger and its changes
+    from other systems, ensuring secondary updates never prevent capture
