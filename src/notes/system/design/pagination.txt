@@ -1,0 +1,21 @@
+Limits size and computation of individual endpoints.
+
+Approaches
+    - Offset-based
+        Provide a LIMIT and OFFSET, to iterate in DB
+        - O(n) performance as DB must read to the start point
+        - With active data, inserts and deletes can cause multiple repeats in responses
+    - Cursor-based
+        You physically keep a pointer to the last item seen
+        Cursor is normally a Base64 encoded string with details on last record
+        + O(1) performance
+        + Pointer is fixed and unaffected by inserts/deletes
+
+        eg.
+            {
+              "data": [...],
+              "pagination": {
+                "has_next_page": true,
+                "next_cursor": "YXNka2Zhc2RmYWU="
+              }
+            }
