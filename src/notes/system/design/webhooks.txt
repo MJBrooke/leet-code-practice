@@ -1,0 +1,13 @@
+Webhooks are a 'push' mechanism that often replaces old polling techniques.
+It allows a place like Adyen to proactively invoke a merchant's API to signal something or push data.
+It sits at a well known pre-configured URL.
+
+This allows for:
+    - Pushing data on a change rather than polling
+    - Building retry strategies into Adyen itself
+    - Putting continuous failures into a DLQ
+
+The merchant must make this webhook idempotent as it can be hit multiple times.
+Merchant must track idempotency key of some kind, like the reference from Adyen.
+Timestamps and sequence numbers are used to further disambiguate by the merchant.
+An HMAC signature must always be included by Adyen for the merchant to verify.
