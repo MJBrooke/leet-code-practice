@@ -1,0 +1,27 @@
+Caching increases availability and lowers latency, but comes with it's own challenges to keep data fresh.
+
+Caching strategies
+    - Cache-aside:
+        Application checks cache. On miss, fetches from DB and updates cache.
+        + Resilient
+        - Cache goes stale if an update to DB occurs elsewhere
+    - Write-through:
+        Application writes to cache, then cache writes to DB or uses Pub/Sub
+        + Cache always up to date
+        - Slower
+    - Write-behind
+        Application write to cache, and cache anynchronously batches updates to DB
+        + High throughput
+        - Risk of loss if cache crashes before DB writes
+
+Eviction strategies
+    - Least-recently used: good for trending data
+    - Least-frequently used: when frequency beats recency
+    - FIFO: discard oldest no matter what
+    - TTL: Mandatory expiry no matter what
+
+Unhappy paths
+    - Non-existent keys can hammer the DB in an attack
+    - If a hot-key expires, DB is hammered
+        Using distributed locking like Zookeeper means only a single thread updates the cache
+    - Cache stampede
