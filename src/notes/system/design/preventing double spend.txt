@@ -1,0 +1,19 @@
+There are multiple levels all working together to prevent double spend:
+1. API level
+    Idempotency keys!
+    Merchant creates unique ID
+    Server checks for key - if exists, send cached response, else process
+
+2. Distributed locking
+    In horizontally scaled APIs, the same request can hit multiple times on different APIs.
+    Use distributed locking (such as zookeeper) to allow only a single thread to work.
+
+3. Database
+    Pessimistic locking: SELECT FOR UPDATE for single rows
+    Optimistic locking: Version tracking only updating if version is expected, returning '0 row affected' if unexpected
+    Serializable: DB locks all relevant rows in a single txn
+
+4. Saga Pattern
+    Use an orchestrator with Compensating Actions to track and undo changes.
+    If a secondary operation creates a double spend somehow, it can be undone.
+
