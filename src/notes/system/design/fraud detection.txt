@@ -1,0 +1,25 @@
+On a payment, we want to perform deep fraud analysis on the transaction while keeping the response fast.
+
+We can use a hybrid approach:
+
+    1. The synchronous path (request round trip): Perform fast stateless checks for an initial 'rough guess'
+        eg. Card expired? Correct CVV? Blacklisted country?
+
+        - Local rules engine using in-memory cache to check simple rules
+        - Check past and pre-computed scores such as if this person was previously listed as 'high risk'
+
+        If there are no flags, we can go ahead, we can reject immediately or push for further analysis.
+
+    2. Asynchronous path: Performs larger, slower stateful checks using Kafka and Flink
+        eg. Has the card been used multiple time in last 10 minutes? Is this spending pattern usual for user?
+
+        Once payment is accepted into system based on initial checks, we use Kafka to pull the txn into further analysis.
+        1. Ingestion: Payment pushed to Kafka topic
+        2. Stream processing (flink or Redis): Do windowed aggregations eg. How many unique cards has this IP used in last hour?
+        3. Store: Put these pre-computed scores into high speed store for next transactions
+
+        If this raises fraud, we use a Saga pattern to compensate by triggering a Void or Refund.
+        Add the user and card as fraudulent, so fast path catches subsequent attempts
+
+    Since false positives can exist, we might have a 'review' state for a human analysis
+        or require auth next time the user returns.
