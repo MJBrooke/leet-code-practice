@@ -2,7 +2,8 @@ System Design interviews should follow structured thinking and progress.
 You should not leap directly into architecture or scale.
 These interviews are unstructured and are lead by you, so you need to keep it focused.
 
-Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
+Great video to refresh approach: https://www.youtube.com/watch?v=i7twT3x5yv8
+Design TicketMaster: https://www.youtube.com/watch?v=fhdPyoO6aXI
 
 1. Understand the problem and scope (5 min)
     Problem is usually open-ended and vague on purpose.
@@ -20,6 +21,7 @@ Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
     At end:
         - List of functional features to design
         - List of non-functional requirements driving design (scalability, capacity, availability etc)
+            Have explicit consistency requirements and read-to-write ratio.
 
 2. Propose high level design and get buy-in (20 min)
     1. API Design
@@ -43,6 +45,10 @@ Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
                 - PUT /v1/business/:id -> Update existing business
                 - DELETE /v1/business/:id -> Delete a business
 
+        Also create some of the table design.
+        You don't need to be super in-depth, but show the tables and fields you're thinking of
+            to be mapped to the endpoints and databases.
+
         Make sure to check with the interviewers that they agree!
 
     2. High-level architecture
@@ -50,6 +56,9 @@ Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
         2. LoadBalancer or API Gateway
         3. Lead to 'APIs' offering the API spec created in part 1
         4. Add relevant data stores depending on data types needed
+
+        Starting with a basic 'user->api->db' gets something on the board initially,
+            which you then build onto proactively with caches, sharding, gateways etc.
 
         Note discussion points:
             - DB scaling
@@ -63,12 +72,44 @@ Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
         eg. Queries per second
 
 3. Design deep dive (15 min)
-    This is about identifying problematic areas, proposing solutions and discussin tradeoffs.
-    You need to read the room! Pickup if there are things they are disatisfied with.
+    This is about identifying problematic areas, proposing solutions and discussing tradeoffs.
+    You need to read the room! Pickup if there are things they are dissatisfied with.
     Ask questions actively - say why you picked something, and open the floor for discussion.
     They may give issues that you can suggest fixes for.
     Come up with at least 2 proposed solutions.
     Pick one solution and implement.
 
+    Proactively introduce failure modes, rather than waiting for them to ask if a node dies.
+
 4. Wrap up (5 min)
     Summarise the design, noting unique parts.
+    Talk about operational readiness, for monitoring, logs and distributed tracing.
+
+---
+Short Version
+    1. Gather Requirements (5 min)
+        Functional: Actual actions needed in the system
+        Non-Functional:
+            Traffic (requests per second)
+            CAP (availability vs consistency)
+            Correctness (eg. webhook is 'at-least-once')
+            Read or Write heavy
+            Traffic Spikes (eg. Black Friday?)
+    2. High-level Design (20 min)
+        Core entities (no detail yet)
+        REST APIs (endpoints + input)
+        Data Model (tables and data)
+        Top-level design layout (no sharding, horiz-scaling, complications)
+            User
+            Services
+            Databases
+    3. Deep Dive (15 min)
+        Start solving failures. Pros and cons!
+            - Database scaling (partitioning, sharding, replicas)
+            - Caching/CDN
+            - Load balancing
+            - Network failures
+            - 'hot' users
+    4. Wrap up (5 min)
+        Monitoring and alerting
+        Summary of design
