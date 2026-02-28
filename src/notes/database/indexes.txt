@@ -62,3 +62,23 @@ Inverted Index
     So if you search for '%pizza%', it will lookup 'pizza' and immediately know all the rows/documents containing it.
     It is a HashMap of word -> entries
         eg. pizza -> [doc1, doc7, doc100]
+
+---
+Clustered Indexes
+    The index _is_ the table. Logical ordering of keys determines the physical ordering of rows in the table
+    B-Tree structure is used, but the actual data is in the tree itself.
+    Can only be one per table.
+    Makes range scans very quick.
+
+Non-clustered Indexes
+    Separate structure from the rows themselves.
+    Contains the keys and a pointer to the actual location of the row, rather than the actual data.
+
+PostgreSQL
+    All tables stored as heaps, with data inserted in any order.
+    All indexes are non-clustered and point to the heap.
+
+    There is a CLUSTER command to invoke a reordering of the data in the heap, but it must be rerun.
+
+    If speed is necessary, you create the non-clustered index with all necessary data included
+        so that no hop is needed from index to heap.
