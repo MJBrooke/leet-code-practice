@@ -1,0 +1,74 @@
+System Design interviews should follow structured thinking and progress.
+You should not leap directly into architecture or scale.
+These interviews are unstructured and are lead by you, so you need to keep it focused.
+
+Great video to refresh: https://www.youtube.com/watch?v=i7twT3x5yv8
+
+1. Understand the problem and scope (5 min)
+    Problem is usually open-ended and vague on purpose.
+    We need to ask questions to understand problem fully and scope to a feature or two.
+    Clarify requirements, who users are, what features we need.
+    To succeed, you must scope it out!
+    eg. Design a chat app
+        Lots of types! All have different constraints.
+        We need features in priority order, with buy-in from interviewers.
+    We also need to clarify non-functional requirements.
+        Usually, this centres on Performance and Scale, as they dictate architectural choices.
+    Back of the envelope math for rough estimates is a good thing!
+    Order of magnitude should be right.
+
+    At end:
+        - List of functional features to design
+        - List of non-functional requirements driving design (scalability, capacity, availability etc)
+
+2. Propose high level design and get buy-in (20 min)
+    1. API Design
+        Start with a top-down approach (API first, then drill to details)
+
+        Design a high-level REST API contract for 1 or 2 of the features. For example:
+            1. Return all business on a user's location
+                - GET /v1/search/:longitude/:latitude?:radius
+                    Input params:
+                        - longitude - double
+                        - latitude - double
+                        - radius - Optional: int, default is 5000 meters
+                    Response:
+                        {
+                            "total": 10,
+                            "businesses": [{businessObject}]
+                        }
+            2. Business owners can add, delete or update a business
+                - GET /v1/business/:id -> Return info on business as-is
+                - POST /v1/business -> Create a business
+                - PUT /v1/business/:id -> Update existing business
+                - DELETE /v1/business/:id -> Delete a business
+
+        Make sure to check with the interviewers that they agree!
+
+    2. High-level architecture
+        1. Add a user
+        2. LoadBalancer or API Gateway
+        3. Lead to 'APIs' offering the API spec created in part 1
+        4. Add relevant data stores depending on data types needed
+
+        Note discussion points:
+            - DB scaling
+            - Concurrency
+            - Failure scenarios
+
+        At this level, we are not deep diving the services, but creating a top-level view only.
+        You can wave away intricacies like caching, sharding etc
+
+    3. Data Access Patterns should be noted
+        eg. Queries per second
+
+3. Design deep dive (15 min)
+    This is about identifying problematic areas, proposing solutions and discussin tradeoffs.
+    You need to read the room! Pickup if there are things they are disatisfied with.
+    Ask questions actively - say why you picked something, and open the floor for discussion.
+    They may give issues that you can suggest fixes for.
+    Come up with at least 2 proposed solutions.
+    Pick one solution and implement.
+
+4. Wrap up (5 min)
+    Summarise the design, noting unique parts.
