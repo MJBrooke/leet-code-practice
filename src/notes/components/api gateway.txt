@@ -1,0 +1,25 @@
+An API Gateway is the frontdoor to the ecosystem, more complex than a proxy.
+Centralises security, traffic and observability.
+Protects internal microservices from public internet chaos.
+
+Core
+    - Protocol translation and transformation
+        eg. from gRPC to REST/JSON
+    - Header manipulation
+        eg. stripping tracing headers before sending to client
+
+Security
+    - TLS handshake (rather than further down)
+    - AuthN and AuthZ. Rejects early.
+    - IP Allow/Deny listing
+    - Firewall
+
+Traffic
+    - Rate-limiting
+    - Short-term burst handling (eg. Black Friday)
+    - Circuit breaking early
+
+Observability
+    - Centralised logging of all interactions
+    - Distributed tracing by adding the trace ID
+    - Usage metering
