@@ -1,0 +1,39 @@
+Industry-standard list of most critical web application security risks
+
+1. Broken Access Control
+    Every API call must verify that the authenticated user has rights to it
+
+2. Cryptographic Failures
+    Using HTTP instead of HTTPS, or an old crackable hashing algorithm like MD5
+    Solution: TLS 1.2+, AES-256 at rest, encryption for keys in HSM/KMS
+
+3. Injection
+    Untrusted data sent to interpreter for execution
+    Solution: Parameterized Queries (prepared statements) to handle escaping of user input
+
+4. Insecure Design
+    Architectural issues like a 'Forgot Password' function that reveals an email exists
+
+5. Security Misconfiguration
+    Incomplete, default or too-much-access security settings
+    eg. Public S3 bucket or debug mode in web app
+    Solution: Infrastructure as code defining access
+
+6. Vulnerable Components
+    Outdated frameworks or libraries (like Log4J)
+    Solution: Security scanning in CI/CD
+
+7. ID and Auth Failures
+    You should have MFA and strong password policies (like using argon2 hashing) and rate-limiting
+
+8. Software and Data Integrity Failures
+    Accepting plugins or code from untrusted sources
+    Solution: Use signed commits from authors of third-party software
+
+9. Security Logging and Monitoring Failures
+    Not having alerting to breaches.
+    Centralise logs and setup real-time alerting for suspicious patterns.
+
+10. Server-side Request Forgery (SSRF)
+    Like injection, but for URLs.
+    Solution: Use a firewall or allowlist for IPs allowed.
