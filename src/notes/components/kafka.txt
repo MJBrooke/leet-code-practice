@@ -1,0 +1,18 @@
+Kafka is more than message queueing like SQS/SNS.
+It is an event streaming platform.
+
+SQS (like a post office)
+    - Destructive reads
+    - One-to-one consumers
+    - Good for task queues
+
+SNS (Megaphone pub/sub)
+    - Used to Fan out to many subscribers
+    - No persistence, sent only once
+
+Kafka
+    Non-destructive reads:
+        Consumers read the log, but it stays on disk.
+        Multiple consumers can read the same stream of data without interfering with each other.
+    Time travel:
+        Data is persisted, allowing a full replay of older events
