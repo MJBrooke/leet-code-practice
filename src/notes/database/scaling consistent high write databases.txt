@@ -1,0 +1,15 @@
+1. Vertical scaling
+    - Give db more resources
+    - Move WAL to separate disk
+    - Connection pooling
+
+2. Table partitioning
+
+3. Database sharding
+
+4. Only append to ledger rather than updating.
+    Totals can be calculated later and cached asynchronously
+
+5. Read Replicas
+    Offload reads of things like reporting, fraud detection, user data etc to read replicas
+    Critical workflows (like balance updates) always hit the primary node.

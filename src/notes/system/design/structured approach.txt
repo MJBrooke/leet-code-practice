@@ -88,28 +88,27 @@ Design TicketMaster: https://www.youtube.com/watch?v=fhdPyoO6aXI
 ---
 Short Version
     1. Gather Requirements (5 min)
-        Functional: Actual actions needed in the system
-        Non-Functional:
-            Traffic (requests per second)
+        Functional: Actual actions needed in the system (User must...)
+        Non-Functional: (System should...)
+            Traffic TPS (requests per second) + Spikes
             CAP (availability vs consistency)
             Correctness (eg. webhook is 'at-least-once')
             Read or Write heavy
-            Traffic Spikes (eg. Black Friday?)
     2. High-level Design (20 min)
         Core entities (no detail yet)
-        REST APIs (endpoints + input)
-        Data Model (tables and data)
-        Top-level design layout (no sharding, horiz-scaling, complications)
-            User
-            Services
-            Databases
+        REST APIs (endpoints + input), 1 or more per functional requirement
+            -> Mention you will build the data model as you design high level!
+        For API endpoint, build a simple high-level flow E2E.
+            -> no sharding, horiz-scaling, complications yet!
+        Get buy in before proceeding.
     3. Deep Dive (15 min)
-        Start solving failures. Pros and cons!
+        Start solving non-functional per API
             - Database scaling (partitioning, sharding, replicas)
             - Caching/CDN
             - Load balancing
+        Go through failure scenarios
             - Network failures
-            - 'hot' users
+            - 'Hot' data
     4. Wrap up (5 min)
         Monitoring and alerting
         Summary of design
