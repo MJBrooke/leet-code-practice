@@ -32,3 +32,19 @@ Challenges:
     - Observability: A control plane or dashboard is needed to see where in the SAGA flow an operation is and status
 
 I have actually used this pattern a lot at AWS!
+
+---
+Universal Structure in System Design
+
+1. The Gateway (synchronous)
+    - Validate request and get it in the system
+        -> Include the idempotency key!
+2. State machine
+    Coordinate with microservices and DBs.
+    Flow represents state of truth for process state.
+    Build in retry logic and compensating steps.
+3. Worker services
+    Microservices offering all functions (BalanceService, LedgerService etc)
+4. Build out the compensating path
+    For each failure case, define a step to undo it.
+
