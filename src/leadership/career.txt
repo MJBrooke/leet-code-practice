@@ -1,33 +1,32 @@
 Allan Gray
     - Instruments platform
         - Distributed stateful REST calls without SAGA pattern.
-            > Grouped to single txn where we could, mitigated with business rule where we couldn't
+            - Grouped to single txn where we could, mitigated with business rule where we couldn't
         - Directly built features and endpoints in other teams' repos instead of pushing the work to them.
-            > I had context of data and contract needed, allowing for very efficient development.
-        - Since Instrument
+            - I had context of data and contract needed, allowing for very efficient development.
     - Instrument Rebalancing and Delinking
-        - No time to build latter ourselves, before deadline, worked with another dev
+        - Introduced new orchestration layer using SAGA
         - Clash with another dev on technical direction
+        - No time to build latter ourselves before deadline, worked with another dev
 
 AWS
     - Releases
-        -> Worked with customers to understand actual issue of compaction
-        -> Delivered fast: No DB with recursive queries, made do with flatter SQL and smarter code
+        - Worked with customers to understand actual issue of compaction
+        - Delivered fast: No DB with recursive queries, made do with flatter SQL and smarter code
     - Zero-touch onboarding
         - Initial proposal received badly
-        -> Risk for scale and unknown pipeline structures
+        - Risk for scale and unknown pipeline structures
     - Multi-tier offering
-        -> Building for read-only offering allowed renewed focus on providing value there
-            that directly added value to second tier
+        - Building for read-only offering allowed renewed focus on providing value there
+           that directly added value to second tier
     - Initial deployment ingestion
     - Automatic Retries
         - Risky technically, we built safety features
+        - Allowlisted to a single known safe failure-reason, deployed it, and built out further ones from there
     - Daily refactors
     - SEV3 deployment failure tickets
         - I pushed back, noisy, made our platform irritating when users wanted to use our other features but without tickets
     - New manager caused unhappiness with team
-
-    -> Manager not technical, so explanations needed simply
 
 Allan Gray
     - Fund Controls rewrite
@@ -35,12 +34,12 @@ Allan Gray
         - Stakeholder comms: Stakeholders unhappy to wait for new features while UI rewrite happened
         - Dev growth: Andrew took ownership and was promoted
     - Model control updates without UI
-        - Launch fast: Manual process using excel from business. Managed to reuse backend code, with small additions in automated job
+        - Launch fast: Manual process using Excel from business. Managed to reuse backend code, with small additions in automated job
     - Platform modernisation
     - Fixed dropping of rebalances, allowing for removal of manual audit process
         - Huge stakeholder win with high impact
 
-    -> You had a junior, intermediate and senior, all with different mentorship levels
+    -> I had a junior, intermediate and senior, all with different mentorship levels
 
 Entelect
     Std Bank
